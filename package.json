@@ -1,0 +1,10 @@
+{
+  "name": "game-agent-tooling",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Generic tooling for AI-agent three.js game builds: a headless Blender asset forge and a preset-camera screenshot checker.",
+  "license": "Apache-2.0",
+  "scripts": { "capture": "node tools/capture-view.mjs" },
+  "devDependencies": { "playwright-core": "^1.65.0", "three": "^0.187.0" }
+}

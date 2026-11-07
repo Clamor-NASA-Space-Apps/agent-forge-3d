@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>capture-view smoke test</title>
+<style>html,body{margin:0;height:100%;background:#111}canvas{display:block}</style>
+<script type="importmap">{ "imports": { "three": "../../node_modules/three/build/three.module.js", "three/addons/": "../../node_modules/three/examples/jsm/" } }</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xc9b8a6);
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment()).texture;
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+const sun = new THREE.DirectionalLight(0xffffff, 2); sun.position.set(3, 5, 2); scene.add(sun);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(3, 48), new THREE.MeshStandardMaterial({ color: 0xa0522d, roughness: 1 }));
+ground.rotation.x = -Math.PI / 2; ground.name = 'ground'; scene.add(ground);
+
+const gltf = await new GLTFLoader().loadAsync('../../out/smoke_crate.glb');
+gltf.scene.name = 'crate'; scene.add(gltf.scene);
+
+const presets = { default: [2.2, 1.6, 2.2], top: [0.01, 3.5, 0.01], side: [3, 0.8, 0] };
+let t = 0;
+window.capture = { setView(name) { camera.position.set(...(presets[name] || presets.default)); camera.lookAt(0, 0.3, 0); renderer.render(scene, camera); } };
+window.advanceTime = ms => { t += ms; gltf.scene.rotation.y = t / 1000; renderer.render(scene, camera); };
+window.render_game_to_text = () => ({ t, objects: scene.children.map(o => o.name || o.type), drawCalls: renderer.info.render.calls });
+window.capture.setView('default');
+</script>
