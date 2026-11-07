@@ -2,3 +2,4 @@ node_modules/
 out/
 previews/
 captures/
+__pycache__/
