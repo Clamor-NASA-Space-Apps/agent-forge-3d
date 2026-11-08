@@ -37,6 +37,9 @@ node tools/capture-view.mjs <url> [outDir] [--views a,b] [--advance ms] [--scale
 - **Browser:** `BROWSER_PATH` env, default `/usr/bin/brave-browser`. Software WebGL flags are on, so it works headless.
 - **Smoke test:** serve the repo root (`python3 -m http.server 5179`), then capture `http://127.0.0.1:5179/tools/smoke/`.
 
+## html-to-png
+`node tools/html-to-png.mjs in.html out.png [--selector "#card"] [--scale 2]` renders a local HTML/SVG chart, diagram or slide to a PNG cropped to the selector (transparent outside it). Same `BROWSER_PATH` default.
+
 ## Checks before committing
 1. `blender -b -P forge/smoke_crate.py` prints `FORGE_DONE`, and the previews look right.
 2. capture-view smoke test exits 0.
