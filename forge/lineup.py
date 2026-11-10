@@ -4,6 +4,7 @@
 #   blender -b -P forge/lineup.py                      # -> previews/lineup.png
 #   FORGE_PROBES=1 FORGE_DESIGN=variant.md FORGE_OUT=v/out FORGE_PREVIEWS=v blender -b -P forge/lineup.py
 #       builds the style probes with that design first (how style variants are compared)
+#   blender -b -P forge/lineup.py -- cat=0.3 dog=0.55  # sizes those models first: downloads come in their own units
 import glob
 import os
 import runpy
@@ -20,13 +21,25 @@ if os.environ.get("FORGE_PROBES"):
     for probe in sorted(glob.glob(os.path.join(lib.ROOT, "forge", "probes", "*.py"))):
         runpy.run_path(probe, run_name="__main__")
 
+want = dict(a.split("=") for a in sys.argv[sys.argv.index("--") + 1:]) if "--" in sys.argv else {}
 lib.reset()
 x, depth = 0.0, 2.0
 for glb in sorted(glob.glob(os.path.join(lib.OUT, "*.glb"))):
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=glb)
     new = [o for o in bpy.data.objects if o not in before]
-    pts = [o.matrix_world @ Vector(c) for o in new if o.type == "MESH" for c in o.bound_box]
+    def corners():
+        bpy.context.view_layer.update()
+        return [o.matrix_world @ Vector(c) for o in new if o.type == "MESH" for c in o.bound_box]
+
+    pts = corners()
+    tall = want.get(os.path.splitext(os.path.basename(glb))[0])
+    if tall and pts:
+        k = float(tall) / (max(p.z for p in pts) - min(p.z for p in pts))
+        for o in (o for o in new if o.parent is None):
+            o.scale *= k
+            o.location *= k
+        pts = corners()
     if not pts:
         continue  # a GLB with no mesh (camera, empty) has nothing to line up
     depth = max(depth, max(abs(p.y) for p in pts) * 2)

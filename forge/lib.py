@@ -204,6 +204,8 @@ def _stage():
     sc.cycles.device, sc.cycles.samples = "CPU", 24
     sc.render.film_transparent = False
     L = DESIGN.get("lighting", {})
+    if "lamp" in L:
+        L = {}  # a look lit by game lamps is near black under its own sky; previews are for shape, so daylight
     world = bpy.data.worlds.new("w")
     world.use_nodes = True
     bg = world.node_tree.nodes["Background"]

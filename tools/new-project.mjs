@@ -96,6 +96,11 @@ func set_view(_view: String) -> void:
 	pass
 `,
   '.gitignore': '.godot/\nbuild/\ncaptures/\n',
+  // folders the workflow fills that are not game data: without this the engine imports every reference image and ships it
+  'design/.gdignore': '', 'research/.gdignore': '', 'forge/.gdignore': '', 'tools/.gdignore': '',
 };
-for (const [f, text] of Object.entries(files)) fs.writeFileSync(path.join(dir, f), text);
+for (const [f, text] of Object.entries(files)) {
+  fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
+  fs.writeFileSync(path.join(dir, f), text);
+}
 console.log(`created ${dir}: open it with \`godot --path ${path.relative(process.cwd(), dir) || '.'} -e\`, check it with tools/capture-view.mjs`);

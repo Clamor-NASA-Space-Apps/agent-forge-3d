@@ -29,6 +29,7 @@ A factory where an AI agent builds 3D games in Godot without "seeing" 3D. Open `
    - Write `CONTRACTS.md` first: state shape, event schema, prefab registry, input actions, collision layers, test hooks. Lanes read only `CONTRACTS.md`, `DESIGN.md` and their own folder.
    - **Checks first:** section 1 wires a fixture scene, the Forge hooks and the probe (`node ../../tools/feel-probe.mjs data/reality.json .`), and turns the `skills/game-feel-gate` rows that apply into tests. It ends with the probe failing on every measured row and erroring on none. A lane is done when its rows pass.
    - Pin what parallel lanes otherwise guess differently: forward axis and yaw convention, one table of collision layers with one owner, input action names, which inits `await`, the keys of `render_game_to_text()`, which groups are floors vs walls.
+   - Pin how the parts plug together: the scene each lane delivers, the few methods the composition root calls on it, who owns the camera, how touch reaches it. Section 1 ships a stand-in with those methods, so every check runs before a lane lands and the root never waits for one.
 6. **Build a section in bulk.** Parallel agents for independent lanes (same checkout, disjoint folders; see Gotchas). You merge.
    From the second section on, resume each lane agent with SendMessage instead of a fresh agent: it keeps its code in context and the brief halves.
    Each brief names its sheet rows and its skills (Skills table); the lane reads those skills before writing code.
@@ -121,7 +122,7 @@ The factory gets better every time it hits an obstacle.
 | Tool | Use |
 |---|---|
 | `forge/lib.py` | Blender helpers for recipes: `reset, mat, box, cyl, cone, sphere, bevel, array, mirror, cut, smooth, finish`. Reads `FORGE_DESIGN` |
-| `forge/lineup.py` | `blender -b -P forge/lineup.py`: every GLB in `out/` beside a 1.8 m person, one `previews/lineup.png`. `FORGE_PROBES=1` builds `forge/probes/` first |
+| `forge/lineup.py` | `blender -b -P forge/lineup.py`: every GLB in `out/` beside a 1.8 m person, one `previews/lineup.png`. `FORGE_PROBES=1` builds `forge/probes/` first; `-- name=height` sizes a model first (downloads come in their own units) |
 | `tools/new-project.mjs` | `node tools/new-project.mjs <name>`: a Godot project in `projects/<name>/` with the Forge addon, the web preset and the fixed settings. `--sync` refreshes the addon in an existing one |
 | `godot/addons/forge/` | The `Forge` autoload: `register(self)` for the hooks `render_game_to_text()`, `set_view(name)`, `place(pos, yaw_deg)`; `HouseStyle.apply(root, design)`, `apply_lighting(parent, design)`, `make_lamp(design)`; `load_glb(path)` |
 | `tools/capture-view.mjs` | `node tools/capture-view.mjs <project> [outDir] [--views a,b\|none] [--advance ms] [--scale 0.5] [--scene res://x.tscn]`: screenshots per preset view + `state.json` + draw calls + `console.log`; exit 1 on errors |
@@ -156,13 +157,15 @@ The factory gets better every time it hits an obstacle.
 - A script error repeats every frame and the game keeps running. The tools report each distinct line once and cap the run's frames; read the first error, the rest follow from it. A helper named `_get` or `_set` in a node script overrides the engine's own and fails to parse.
 - Godot runs from the project folder, so a relative path passed after `--` points there. Pass absolute paths.
 - A project that was never opened has no import cache. The tools import once; after adding models with the editor closed, run `godot --headless --path . --import`.
-- Forge previews only have the DESIGN.md rig, in raw colour, so a night variant renders near black. If the look depends on a game light (a fire, a lamp), give DESIGN.md a `lighting.lamp` and judge the variants in `godot/preview`.
+- A look that depends on a game light (a fire, a lamp) is near black under its own sky. Give DESIGN.md a `lighting.lamp`: forge previews then render in plain daylight, to judge shape, and the look is judged in `godot/preview`.
 - Projects reach the tooling through `../../`, so a git worktree breaks them. Lanes with disjoint folders run in the same checkout and don't commit; you commit after reading the diff. A lane's check can crash on another lane's half-written data file: re-run once before treating it as a bug.
 - Reference images: the fastest route is giving the user Google Images search terms (one line each, saying what it's for) and letting them save into `design/refs/`. An image pasted in chat is not on disk, so ask for the file. Store and press CDNs can be blocked on a venue router, and WebFetch drops article images.
-- A web export ships only what the engine imports: data files (`*.json`) need the preset's `include_filter` (`new-project.mjs` writes it), and a reference folder inside the project (`design/refs`, `research/`) ships too unless it holds a `.gdignore`.
+- A web export ships only what the engine imports: data files (`*.json`) need the preset's `include_filter` (`new-project.mjs` writes it), and a folder of references or tools inside the project ships too unless it holds a `.gdignore` (`new-project.mjs` writes one into `design/`, `research/`, `forge/` and `tools/`, and the tools into their output folder).
 - The tools import only when `.godot/` is missing, so a `class_name` added later is unknown to them ("identifier not declared"): preload scripts by path, or re-import.
 - A sheet row with `limit: max` passes on a hero that does nothing. The probe fails a jump that never left the ground; for every other ceiling, a second row must prove the move happens.
 - A downloaded "rigged, animation ready" model can hold a skeleton and no clips. List the clips before accepting it (`bpy.data.actions`, or the `animations` of the glTF). A mesh with weights and a skeleton with clips from another model of the same build can be joined: scale so hips and shoulders meet, move the joints, rename the weight groups.
+- With `canvas_items` stretch a control's size is in base pixels, not the phone's: a landscape phone is about 360 CSS px tall, so on a 720 px base a 48 px touch target is 96 px in the scene.
+- A web game never binds a key the browser owns: Ctrl+W, Ctrl+T and Ctrl+N close or open tabs, F5 reloads, Alt+arrows leave the page, Esc drops the mouse capture. The probe presses actions, so no check sees it.
 - A review finding can be wrong: run the check it names before merging the fix.
 
 ## Checks before committing here

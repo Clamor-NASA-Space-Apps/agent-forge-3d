@@ -31,6 +31,7 @@ export function runJob(project, job, { scene, gameArgs = [], width = 640, height
   ensureImported(project);
   const out = path.resolve(job.out ?? 'captures');
   fs.mkdirSync(out, { recursive: true });
+  fs.writeFileSync(path.join(out, '.gdignore'), '');  // or the engine imports every screenshot as a texture
   const jobFile = path.join(out, 'job.json'), resultFile = path.join(out, 'result.json');
   fs.writeFileSync(jobFile, JSON.stringify({ ...job, out }));
   fs.rmSync(resultFile, { force: true });
