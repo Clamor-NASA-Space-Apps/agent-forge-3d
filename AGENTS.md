@@ -93,7 +93,7 @@ The factory gets better every time it hits an obstacle.
 - **Keep each `AGENTS.md` under about 150 lines.** Merge duplicates, prune what no longer bites.
 
 ## Skills
-`skills/<name>/SKILL.md` (linked at `.claude/skills`): `game-feel-gate` (the playtest checklist), `character-life` (controller feel, procedural life, moods, death), `living-world` (traffic and crowds in budget), `rapier-character` (physics hero beside a pure sim). Add one when a lesson needs more than a gotcha line.
+`skills/<name>/SKILL.md` (linked at `.claude/skills`): `game-feel-gate` (the playtest checklist), `character-life` (controller feel, procedural life, moods, death), `living-world` (traffic and crowds in budget), `rapier-character` (physics hero beside a pure sim), `world-collision` (collide with what is drawn, traversal sweeps), `third-person-camera` (never inside geometry), `contextual-traversal` (one-press jumps). Add one when a lesson needs more than a gotcha line.
 
 ## Tools
 | Tool | Use |

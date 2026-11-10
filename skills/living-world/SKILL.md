@@ -14,6 +14,12 @@ A street with props and one bus is a diorama. Life means things that move on the
 - **Hazards reach the player.** Every chaser has a nav path out of its home area (gates are nav nodes), a leash range and a way home.
 - **Cheap ambience:** lit windows that switch on and off over the night (one emissive material toggled per window group), flicker on one lamp, steam, a parked bike. These are static-batch friendly.
 
+## NPC people that read as normal people
+- **Real proportions.** A head is about 1/7 to 1/8 of an adult's height; kids about 1/5 to 1/6. Chibi or toy kits scaled up to 1.8 m read as giants with huge heads. Check the lineup beside a 1.8 m reference before importing a kit.
+- **Walk speeds:** adults 1.2 to 1.5 m/s with a per-walker variation; the old about 0.9 to 1.1; kids up to 1.6. Only someone with a reason runs (a chasing kid, someone fleeing). A street where everyone runs reads as fake.
+- **No foot sliding:** set the clip's playback rate to movement speed divided by the speed the clip was authored for, and switch clips by speed band (idle < 0.2 m/s < walk < about 2.5 m/s < run). A procedural gait whose phase advances with distance walked never slides.
+- **Life beyond walking:** stops (about 1 in 4 walkers pause 2 to 6 s at a shop window or a phone), heads that turn toward the hero when it is near, and small variations in tempo and arm swing.
+
 ## Draw-call budget (keep < 150 total)
 | Cost | Fix |
 |---|---|
@@ -34,3 +40,7 @@ Measure `renderer.info.render.calls` with every NPC on screen at High (a road vi
 - A sim test per NPC kind: it does its thing (a car keeps its gap, a kid chases and gives up, a grumpy walker kicks within range with a cooldown).
 - A road capture at High with draw calls in `state.json` < 150.
 - More than 3 moving things visible from the default camera on the main street.
+
+## Sources
+- Matching playback rate to movement speed (Unreal distance matching): https://dev.epicgames.com/documentation/unreal-engine/API/Plugins/AnimationLocomotionLibraryRuntim-/UAnimDistanceMatchingLibrary/SetPlayrateToMat-?lang=en-US
+- Fixing foot sliding: https://bugnet.io/blog/how-to-fix-animation-foot-sliding
