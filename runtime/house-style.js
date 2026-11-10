@@ -28,6 +28,7 @@ function role(design, name) {
 function pick(design, m) {
   if (design.materials[m.name]) return role(design, m.name);
   for (const [pattern, name] of Object.entries(design.kit || {})) {
+    if (pattern.startsWith('#')) continue; // colour anchors belong to tools/kit-roles.mjs, not name matching
     if (new RegExp(pattern, 'i').test(m.name)) return role(design, name);
   }
   if (m.map) {
@@ -57,9 +58,11 @@ export function applyHouseStyle(root, design) {
   return root;
 }
 
-// Call once per scene: a second call adds a second rig.
+// Calling it again (a theme switch) replaces the previous rig and frees its environment map.
 export function applyLighting(scene, renderer, design) {
   const L = design.lighting;
+  const old = scene.userData.houseRig;
+  if (old) { scene.remove(old.hemi, old.sun); old.sun.dispose(); old.hemi.dispose(); scene.environment?.dispose(); }
   renderer.toneMapping = { aces: THREE.ACESFilmicToneMapping, agx: THREE.AgXToneMapping, neutral: THREE.NeutralToneMapping }[L.toneMapping] ?? THREE.NoToneMapping;
   renderer.toneMappingExposure = L.exposure ?? 1;
   renderer.shadowMap.enabled = true;
@@ -78,7 +81,7 @@ export function applyLighting(scene, renderer, design) {
   sun.position.setFromSphericalCoords(50, THREE.MathUtils.degToRad(90 - (L.elevation ?? 40)), THREE.MathUtils.degToRad(L.azimuth ?? 35));
   sun.castShadow = true;
   scene.add(hemi, sun);
-  return { hemi, sun };
+  return (scene.userData.houseRig = { hemi, sun });
 }
 
 // A game light (streetlamp, window, fire) from DESIGN.md `lighting.lamp`, so a night scene's

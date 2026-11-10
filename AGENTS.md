@@ -97,6 +97,7 @@ The factory gets better every time it hits an obstacle.
 | `runtime/house-style.js` | `applyHouseStyle(root, design)`, `applyLighting(scene, renderer, design)` |
 | `tools/capture-view.mjs` | `node tools/capture-view.mjs <url> [outDir] [--views a,b] [--advance ms] [--scale 0.5] [--eval js]`: screenshots per preset view + `state.json` + `console.log`; exit 1 on errors |
 | `tools/preview/` | A style variant in three.js: `?design=<tokens.json>&glb=a.glb,b.glb&lamps=2`, capture with `--views three,low`. Probes in a row, a 1.8 m person, one swatch sphere per material role, lamps from `lighting.lamp` |
+| `tools/kit-roles.mjs` | `node tools/kit-roles.mjs DESIGN.md public/models kit/*.glb --scale 8 --prefix building_`: atlas-textured kit models (Kenney 2.x) to one primitive per role, by `#hex: role` anchors in DESIGN.md `kit`. `--palette` lists the atlas colours to map |
 | `tools/ref-palette.mjs` | `node tools/ref-palette.mjs design/refs [--thumbs dir] [--colors 8]`: an N-colour palette row per reference image, plus ≤1000 px copies to open big refs cheaply. Needs ffmpeg |
 | `tools/html-to-png.mjs` | `node tools/html-to-png.mjs in.html out.png [--selector "#card"] [--scale 2]`: a local HTML/SVG chart, diagram or slide to a cropped PNG |
 
@@ -113,6 +114,7 @@ The factory gets better every time it hits an obstacle.
 
 ## capture-view page hooks
 - `window.capture.setView(name)`, `window.advanceTime(ms)` (deterministic stepping), `window.render_game_to_text()` (JSON state).
+- Real time drives play, but the first `advanceTime` call restarts from the seed and stops real-time stepping: capture-view calls it after load, so load time otherwise leaks into `state.json`.
 - Exit code 1 on page errors, console errors, or HTTP ≥ 400 (favicon ignored).
 - **Smoke test:** serve the repo root (`python3 -m http.server 5179`), then capture `http://127.0.0.1:5179/tools/smoke/`.
 
@@ -128,6 +130,9 @@ The factory gets better every time it hits an obstacle.
 - Projects reach the tooling through `../../`, so a git worktree breaks them. Lanes with disjoint folders run in the same checkout and don't commit; you commit after reading the diff.
 - Reference images: the fastest route is giving the user Google Images search terms (one line each, saying what it's for) and letting them save into `design/refs/`. An image pasted in chat is not on disk, so ask for the file. Store and press CDNs (Steam) can be blocked on a venue router, and WebFetch drops article images; for 80.lv, curl the HTML and grep `cdn.80.lv/.../widen_920x0.jpg`.
 - A large emissive surface (a lit window, a shop front) clips to white under ACES from about `emissive: 1.2`; 0.8 keeps the `light` colour.
+- Kenney 2.x kits paint every model from one `colormap` atlas (one material, gradient swatches), so `kit` name patterns paint a whole house one role: run `tools/kit-roles.mjs` with `#hex` anchors. Kenney city units are road tiles: `--scale 8` gives an 8 m road, 5.4 m lamp, 6.7 m house.
+- A project importing `runtime/house-style.js` through `../../` needs Vite `server.fs.allow: ['../..']` and `resolve.dedupe: ['three']`, or it loads a second three from the factory's node_modules.
+- A review finding can be wrong: run the check it names before merging the fix. A "UV 1.0 samples column 0" fix would have broken REPEAT sampling, which is the glTF default and what the GPU does.
 - Some distro Blender builds log an OpenColorIO version error. Renders still work, in raw colour: judge shape in previews, final colour in three.js.
 
 ## Checks before committing here
