@@ -51,7 +51,11 @@ node tools/web-check.mjs projects/<name>                                        
 - The exit code is 1 if the game logged a script or engine error.
 
 ## Skills
-`skills/` holds the factory's own lessons (what past builds got wrong). For engine idiom it leans on the Godot skills of [awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills) (Apache-2.0), installed separately; the table in `AGENTS.md` says which to load for what.
+`skills/` holds two kinds, and Claude Code loads them from `.claude/skills` in any session here:
+- the factory's own lessons (what past builds got wrong);
+- eighteen Godot and game-development skills copied unchanged from [awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills) (Apache-2.0), listed with their source in `skills/THIRD-PARTY.md`.
+
+The table in `AGENTS.md` says which to load for what.
 
 ## Licence
-Apache-2.0. The test-hook pattern follows OpenAI's develop-web-game skill (trailofbits/skills-curated mirror).
+Apache-2.0. The copied skills keep their own Apache-2.0 licence and notice (`skills/third-party/`). The test-hook pattern follows OpenAI's develop-web-game skill (trailofbits/skills-curated mirror).

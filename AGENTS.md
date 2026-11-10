@@ -36,6 +36,7 @@ A factory where an AI agent builds 3D games in Godot without "seeing" 3D. Open `
 7. **Gate the section.**
    - Re-run every agent's check yourself (`godot --headless --path . -s tests/run.gd`, the probe, capture-view), and open one film per gait, jump and pose (`feel-probe --film`). An agent's report is a lead, not proof. Read its diff before merging.
    - `node ../../tools/style-check.mjs DESIGN.md models/*.glb` passes (from the project folder), and one fresh lineup render is compared with the approved variant.
+   - `python3 ../../skills/godot-nodes-scenes/scripts/check_godot_project.py .` reports 0 errors: a hand-written `.tscn` breaks quietly (a wrong resource id, a parent path that moved), and this reads every scene without starting the engine.
    - `node ../../tools/web-check.mjs .` passes: the native checks are fast, but the web build is what ships.
    - Run the `code-review` skill at `medium`. Fix only real bugs and regressions in normal use, re-review at most once, and send everything else to `findings.md`, one line each.
    - **The user plays the web build** (five minutes, on the weakest device it must run on) before the boxes are ticked: tests, bots and preset shots all passed a game that felt dead.
@@ -99,7 +100,7 @@ The factory gets better every time it hits an obstacle.
 - **Keep each `AGENTS.md` under about 150 lines.** Merge duplicates, prune what no longer bites.
 
 ## Skills
-Factory skills are in `skills/<name>/SKILL.md` (linked at `.claude/skills`): they hold what past builds got wrong. The Godot skills are a third-party pack, installed once per machine with `npx skills add gamedev-skills/awesome-gamedev-agent-skills -g -a claude-code -y -s <names>`: they hold engine idiom. Pick both at plan time from what the plan has, and name them in the lane briefs. Where they disagree, the factory skill wins.
+`skills/<name>/SKILL.md` (linked at `.claude/skills`, so every session here has them). Two kinds live there. **Factory skills** hold what past builds got wrong. **Godot skills** hold engine idiom: they are an unchanged copy of a third-party pack (`skills/THIRD-PARTY.md` names them, their source and licence), never edited here. Pick both at plan time from what the plan has, and name them in the lane briefs. Where they disagree, the factory skill wins.
 | The plan has | Factory skill | Godot skill |
 |---|---|---|
 | any moving actor, a chase, a jump, a physical number | `reality-sheet` | |
@@ -145,7 +146,7 @@ Factory skills are in `skills/<name>/SKILL.md` (linked at `.claude/skills`): the
 
 ## Gotchas
 - Blender `-b -P` exits 0 on a Python error unless you add `--python-exit-code 1`. Distro builds may log an OpenColorIO version error: renders still work in raw colour, so judge shape in previews and colour in the engine.
-- Godot 4.7 cannot read a GLB with meshopt, quantized or Draco-compressed meshes ("required extension ... is not supported"), so `--compress false`; WebP textures load. Official and kit models often arrive Draco-compressed: run them through `gltf-transform optimize` first. Its defaults also merge things the game needs by name: `--join`/`--instance` fold same-material parts into one node (pass `false` for models the game moves or hides part by part), `--palette` merges materials and loses role names (pass `false`).
+- Godot 4.7 cannot read a GLB with meshopt, quantized or Draco-compressed meshes ("required extension ... is not supported"), so `--compress false`; WebP textures load. Official and kit models often arrive Draco-compressed: run them through `gltf-transform optimize` first. Its defaults also merge things the game needs by name: `--join`/`--instance` fold same-material parts into one node and drop their names (pass `false` for models the game moves or hides part by part, or whose part names carry collision suffixes), `--palette` merges materials and loses role names (pass `false`).
 - The Compatibility renderer adds a light with shadows in sRGB space: one sun plus ambient came out 2.2 times too bright on flat ground. `apply_lighting()` corrects its sun; any other shadowed light needs its energy cut by eye, so keep to one or two. Sky-sourced ambient ignored `ambient_light_energy` there too, so the rig's ambient is a colour.
 - `--headless` draws nothing: pictures come from software OpenGL on a hidden display, where the frame rate means nothing. Frame rate is measured on the real device, in the web build.
 - A web build runs only on https or localhost. To test on a phone, serve it on the laptop and `adb reverse tcp:<port> tcp:<port>`, then open `localhost:<port>` on the phone. In a phone browser `OS.has_feature("mobile")` is false; ask for `web_android` or `web_ios`.
