@@ -2,6 +2,12 @@
 
 Generic helpers for building three.js browser games with AI coding agents. Not tied to any one game.
 
+## Use it as a game factory
+1. Clone this repo and run `claude` (Claude Code) inside it.
+2. Say what to build. The agent follows the workflow in `AGENTS.md`: it asks its questions, plans, writes a roadmap, builds in sections, and reviews each one.
+3. The project is created in `projects/<name>/`. That folder is gitignored, and every project is its own git repo.
+4. When the agent hits the same obstacle twice, it adds a tool to `tools/` or a gotcha to `AGENTS.md`, so the next build starts smarter.
+
 ## Asset forge (headless Blender)
 - Write a short recipe in `forge/<asset>.py` that uses `forge/lib.py`.
 - `lib.py` gives you shared materials, bevel, array, mirror, boolean cut, smooth shading, origin-to-ground, GLB export, and 3 preview renders.
