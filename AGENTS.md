@@ -119,6 +119,10 @@ The factory gets better every time it hits an obstacle.
 - In three.js a metal with no `scene.environment` renders black. `applyLighting()` sets a sky-coloured one.
 - capture-view waits for `window.capture` or `window.render_game_to_text`: `networkidle` fires while a module is still parsing models, and the shot came out black about 1 in 5 runs. Define the hooks last.
 - Blender `-b -P` exits 0 on a Python error unless you add `--python-exit-code 1`.
+- `gltf-transform optimize` defaults merge things the game needs by name: `--join`/`--instance` fold same-material parts into one node (pass `false` for models the game hides part by part), `--palette` merges materials and loses role names (pass `false`). style-check reads meshopt GLBs, so check after optimizing.
+- Forge previews only have the DESIGN.md rig. If the look depends on a game light (a fire, a lamp), also render each variant in three.js before the user picks.
+- capture-view calls `setView` itself, so it hides a game that never sets its own start camera. Check one shot with `--eval "window.capture = undefined"`.
+- Projects reach the tooling through `../../`, so a git worktree breaks them. Lanes with disjoint folders run in the same checkout and don't commit; you commit after reading the diff.
 - Some distro Blender builds log an OpenColorIO version error. Renders still work, in raw colour: judge shape in previews, final colour in three.js.
 
 ## Checks before committing here

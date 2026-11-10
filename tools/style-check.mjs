@@ -12,6 +12,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Logger, NodeIO, getBounds } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { MeshoptDecoder } from 'meshoptimizer';
 import { loadDesign } from './design-tokens.mjs';
 
 const CORE = ['body', 'trim', 'accent', 'metal', 'glass', 'rock', 'light'];
@@ -44,7 +46,10 @@ const budgets = d.geometry?.budgets || {};
 if (!budgets.prop) fails.push('geometry.budgets.prop is missing');
 
 const lin = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-const io = new NodeIO().setLogger(new Logger(Logger.Verbosity.ERROR));
+// projects ship meshopt-compressed GLBs (gltf-transform optimize); without the extensions they fail to load
+await MeshoptDecoder.ready;
+const io = new NodeIO().setLogger(new Logger(Logger.Verbosity.ERROR))
+  .registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
 for (const file of glbs) {
   const doc = await io.read(file);
   const name = path.basename(file, '.glb');

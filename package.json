@@ -10,7 +10,9 @@
   },
   "devDependencies": {
     "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
     "@google/design.md": "^0.4.0",
+    "meshoptimizer": "^1.3.0",
     "playwright-core": "^1.65.0",
     "three": "^0.187.0",
     "yaml": "^2.9.1"
