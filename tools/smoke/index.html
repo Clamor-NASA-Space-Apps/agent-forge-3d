@@ -6,26 +6,34 @@
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { applyHouseStyle, applyLighting } from '../../runtime/house-style.js';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xc9b8a6);
-scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment()).texture;
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
-const sun = new THREE.DirectionalLight(0xffffff, 2); sun.position.set(3, 5, 2); scene.add(sun);
-const ground = new THREE.Mesh(new THREE.CircleGeometry(3, 48), new THREE.MeshStandardMaterial({ color: 0xa0522d, roughness: 1 }));
+// out/design.json comes from: node tools/design-tokens.mjs examples/DESIGN.md out/design.json
+const design = await (await fetch('../../out/design.json')).json();
+applyLighting(scene, renderer, design);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(3, 48), new THREE.MeshStandardMaterial({ name: 'sandGround', color: 0xa0522d }));
 ground.rotation.x = -Math.PI / 2; ground.name = 'ground'; scene.add(ground);
+// a stand-in for a kit model with an off-palette colour: house style must map it to the "metal" role
+const kitPart = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), new THREE.MeshStandardMaterial({ name: 'steelPanel', color: 0xff00ff }));
+kitPart.position.set(1, 0.15, 0.6); kitPart.name = 'kitPart'; scene.add(kitPart);
+applyHouseStyle(ground, design); applyHouseStyle(kitPart, design);
 
 const gltf = await new GLTFLoader().loadAsync('../../out/smoke_crate.glb');
-gltf.scene.name = 'crate'; scene.add(gltf.scene);
+gltf.scene.name = 'crate'; scene.add(applyHouseStyle(gltf.scene, design));
 
 const presets = { default: [2.2, 1.6, 2.2], top: [0.01, 3.5, 0.01], side: [3, 0.8, 0] };
 let t = 0;
 window.capture = { setView(name) { camera.position.set(...(presets[name] || presets.default)); camera.lookAt(0, 0.3, 0); renderer.render(scene, camera); } };
 window.advanceTime = ms => { t += ms; gltf.scene.rotation.y = t / 1000; renderer.render(scene, camera); };
-window.render_game_to_text = () => ({ t, objects: scene.children.map(o => o.name || o.type), drawCalls: renderer.info.render.calls });
+window.render_game_to_text = () => {
+  const materials = {};
+  scene.traverse(o => { if (o.isMesh) materials[o.name] = `${o.material.name} #${o.material.color.getHexString()}`; });
+  return { t, objects: scene.children.map(o => o.name || o.type), materials, drawCalls: renderer.info.render.calls };
+};
 window.capture.setView('default');
 </script>

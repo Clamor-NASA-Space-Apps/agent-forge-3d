@@ -3,8 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Generic tooling for AI-agent three.js game builds: a headless Blender asset forge and a preset-camera screenshot checker.",
+  "description": "Generic tooling for AI-agent three.js game builds: a headless Blender asset forge, a DESIGN.md design language with a style checker, and a preset-camera screenshot checker.",
   "license": "Apache-2.0",
-  "scripts": { "capture": "node tools/capture-view.mjs" },
-  "devDependencies": { "playwright-core": "^1.65.0", "three": "^0.187.0" }
+  "scripts": {
+    "capture": "node tools/capture-view.mjs"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@google/design.md": "^0.4.0",
+    "playwright-core": "^1.65.0",
+    "three": "^0.187.0",
+    "yaml": "^2.9.1"
+  }
 }

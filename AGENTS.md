@@ -6,23 +6,35 @@
 A factory where an AI agent builds 3D browser games without "seeing" 3D. Open `claude` in this folder and say what to build.
 1. **Asset forge** (`forge/`): headless Blender recipes → `out/<name>.glb` + `previews/<name>_{front,side,top}.png`.
 2. **capture-view** (`tools/capture-view.mjs`): opens a page in a headless Chromium-family browser, steps time, screenshots preset cameras, dumps state, and fails on errors.
-3. **This file:** the workflow and rules every build follows.
+3. **Design language** (`examples/DESIGN.md`, `runtime/house-style.js`, `tools/style-check.mjs`, `forge/lineup.py`): one DESIGN.md per project holds every colour, material, bevel, scale and light value. The forge and the browser read it; the checker fails anything that drifts.
+4. **This file:** the workflow and rules every build follows.
 
 **Projects live in `projects/<name>/`** (gitignored). Each one is its own git repo with its own remote and its own `AGENTS.md` for game-specific rules. Claude Code loads every `CLAUDE.md` from the working folder up, so a session in a project reads that project's file, this one, and any workspace file above it.
 
 ## Workflow (when asked to build something)
-1. **Interview.** Create or open `projects/<name>/`. Ask once with `AskUserQuestion`, up to 4 questions: the spec, the design pack and research paths to read, the deadline, and what "done" looks like. Read only the files named.
-2. **Plan.** Enter plan mode. Propose the modules (see Modular architecture), the lanes with the folders they own, and each lane's check.
-3. **Roadmap.** After approval, write `projects/<name>/roadmap.md`:
+1. **Interview.** Create or open `projects/<name>/`. Ask with `AskUserQuestion` in as many rounds as it takes; there is no question cap. Two parts:
+   - **The build:** the spec, the design pack and research paths to read, the deadline, what "done" looks like. Read only the files named.
+   - **The look:** reference images (games, 3D objects, renders) saved to `design/refs/`, and for each one what we take from it and what we avoid. Mood words, audience, the weakest device it must run on. Open every image. **Never pick the look alone:** no references means ask again, not invent.
+2. **Design.** Write 3 candidate styles as `design/variants/{a,b,c}.md` (copy `examples/DESIGN.md`, change only tokens and prose). For each: `node ../../tools/style-check.mjs design/variants/a.md` must pass, then render the probe lineup (`FORGE_PROBES=1 FORGE_DESIGN=design/variants/a.md FORGE_OUT=design/variants/a/out FORGE_PREVIEWS=design/variants/a blender -b -P ../../forge/lineup.py`). Show all three side by side on one page (lineup, swatches, materials, light, one HUD card) as a private Artifact. The user picks or mixes; write `DESIGN.md`, check it, commit it. No lane starts before this.
+3. **Plan.** Enter plan mode. Propose the modules (see Modular architecture), the lanes with the folders they own, and each lane's check.
+4. **Roadmap.** After approval, write `projects/<name>/roadmap.md`:
    - Sections of 2–4 hours of work, every item a `[ ]` box.
-   - Every section ends with the same three boxes: `check passes`, `/code-review medium`, `lessons`.
-   - Write `CONTRACTS.md` first: state shape, event schema, prefab registry, test hooks. Lanes read only it and their own folder.
-4. **Build a section in bulk.** Parallel agents in git worktrees for independent lanes. You merge.
-5. **Gate the section.**
+   - Every section ends with the same three boxes: `checks pass`, `/code-review medium`, `lessons`.
+   - Write `CONTRACTS.md` first: state shape, event schema, prefab registry, test hooks. Lanes read only `CONTRACTS.md`, `DESIGN.md` and their own folder.
+5. **Build a section in bulk.** Parallel agents in git worktrees for independent lanes. You merge.
+6. **Gate the section.**
    - Re-run every agent's check yourself (`node --test`, capture-view). An agent's report is a lead, not proof. Read its diff before merging.
+   - `node ../../tools/style-check.mjs DESIGN.md public/models/*.glb` passes (from the project folder), and one fresh lineup render is compared with the approved variant.
    - Run the `code-review` skill at `medium`. Fix only real bugs and regressions in normal use, re-review at most once, and send everything else to `findings.md`, one line each.
    - Tick the boxes, commit, push.
-6. **Lessons**, then the next section. See Self-improvement.
+7. **Lessons**, then the next section. See Self-improvement.
+
+## Design language
+- **`DESIGN.md` is the only file with colour values.** Google Labs' format (`npx design.md lint`) for the HUD half, plus our 3D keys: `materials` (roles), `geometry` (bevel, shading, human and door size, per-class triangle and height budgets), `lighting` (one rig), `kit` (name pattern to role, for kit models). `style-check` runs the linter and ignores only the warnings these 3D keys cause.
+- **Recipes ask for roles:** `mat("body")`. A raw colour or an unknown role raises. Seven core roles always exist: `body, trim, accent, metal, glass, rock, light`.
+- **Every model in the browser goes through `applyHouseStyle()`, every scene through `applyLighting()`** (`runtime/house-style.js`). An unmapped kit material logs a warning; fix it with a `kit` entry, never in code.
+- **Model file names start with their class** (`building_*`, `vehicle_*`, `rock_*`); anything else counts as `prop`. That picks the budget `style-check` applies.
+- **Changing the look** is a DESIGN.md edit the user approves, shown with `npx design.md diff old.md new.md`. Never in code, never silently.
 
 ## Saving tokens
 - State before pictures: `window.render_game_to_text()` answers "is power 40%?" for a fraction of a screenshot. Capture at `--scale 0.5`.
@@ -66,7 +78,7 @@ Build it modular from the first commit so it never needs splitting later.
 - **Files:** 200–800 lines is comfortable. Under about 100 is a merge candidate. A folder needs about three files or a boundary worth enforcing.
 - **Types and constants live with their owner.** Only project-wide ones go in a shared file.
 - **The sim is the single source of truth.** Scene and UI read its state and never hold game rules.
-- **Choke points:** each project's `AGENTS.md` lists its shared helpers (house style, seeded rng, the tuning file, test hooks). Bypassing one is a bug, not a shortcut. Writing new code beside existing code that does the same job is the most expensive mistake there is.
+- **Choke points:** `DESIGN.md`, `lib.mat()` and `runtime/house-style.js` in every project, plus each project's own list in its `AGENTS.md` (seeded rng, the tuning file, test hooks). Bypassing one is a bug, not a shortcut. Writing new code beside existing code that does the same job is the most expensive mistake there is.
 
 ## Self-improvement
 The factory gets better every time it hits an obstacle.
@@ -77,20 +89,24 @@ The factory gets better every time it hits an obstacle.
 ## Tools
 | Tool | Use |
 |---|---|
-| `forge/lib.py` | Blender helpers for recipes: `reset, mat, box, cyl, sphere, bevel, array, mirror, cut, smooth, finish` |
+| `forge/lib.py` | Blender helpers for recipes: `reset, mat, box, cyl, sphere, bevel, array, mirror, cut, smooth, finish`. Reads `FORGE_DESIGN` |
+| `forge/lineup.py` | `blender -b -P forge/lineup.py`: every GLB in `out/` beside a 1.8 m person, one `previews/lineup.png`. `FORGE_PROBES=1` builds `forge/probes/` first |
+| `tools/style-check.mjs` | `node tools/style-check.mjs DESIGN.md [model.glb ...]`: DESIGN.md lint + 3D keys + per-model roles, colours, triangles, height. Exit 1 on drift |
+| `tools/design-tokens.mjs` | `node tools/design-tokens.mjs DESIGN.md out.json`: resolved tokens for the browser |
+| `runtime/house-style.js` | `applyHouseStyle(root, design)`, `applyLighting(scene, renderer, design)` |
 | `tools/capture-view.mjs` | `node tools/capture-view.mjs <url> [outDir] [--views a,b] [--advance ms] [--scale 0.5]`: screenshots per preset view + `state.json` + `console.log`; exit 1 on errors |
 | `tools/html-to-png.mjs` | `node tools/html-to-png.mjs in.html out.png [--selector "#card"] [--scale 2]`: a local HTML/SVG chart, diagram or slide to a cropped PNG |
 
 **Browser:** `BROWSER_PATH` env, default `/usr/bin/brave-browser`. Software WebGL flags are on, so it works headless.
 
 ## Forge rules
-- **Recipes:** one per asset, `forge/<name>.py`, 40–80 lines. Import from `lib.py`. Never re-implement a helper inside a recipe; a missing helper goes into `lib.py` once.
+- **Recipes:** one per asset, `forge/<name>.py`, 40–80 lines. Import from `lib.py`. Materials by role only, bevels at the DESIGN.md default unless a part needs a sharper edge. Never re-implement a helper inside a recipe; a missing helper goes into `lib.py` once.
 - **Run:** `blender -b -P forge/<name>.py`. It prints `FORGE_DONE <glb> <pngs>`.
 - **Before calling a model done:** open all 3 PNGs and compare them with the reference images (get 1–2 real photos first).
 - **Look:** bevel every hard-surface part (the cheapest "looks produced" win), `smooth()` round parts, reuse materials by name (fewer draw calls).
 - `finish()` puts the origin on the ground, centred, so models drop straight onto build pads.
 - **Previews render with Cycles CPU, 24 samples** (works with no GPU or display). Don't switch to EEVEE.
-- **Env vars:** `FORGE_OUT`, `FORGE_PREVIEWS`, `FORGE_NO_RENDER=1` (export only).
+- **Env vars:** `FORGE_DESIGN` (default `examples/DESIGN.md`), `FORGE_OUT`, `FORGE_PREVIEWS`, `FORGE_NO_RENDER=1` (export only), `FORGE_PROBES=1` (lineup only).
 
 ## capture-view page hooks
 - `window.capture.setView(name)`, `window.advanceTime(ms)` (deterministic stepping), `window.render_game_to_text()` (JSON state).
@@ -99,9 +115,12 @@ The factory gets better every time it hits an obstacle.
 
 ## Gotchas
 - Blender 5.2: `shade_smooth_by_angle` + the `WEIGHTED_NORMAL` modifier replace the old auto-smooth. Principled BSDF emission inputs are `Emission Color` / `Emission Strength`.
+- Blender's `matrix_world` is stale after a location change until `view_layer.update()`; `_bounds()` calls it, so framing is right.
+- In three.js a metal with no `scene.environment` renders black. `applyLighting()` sets a sky-coloured one.
 - Some distro Blender builds log an OpenColorIO version error. Renders still work, in raw colour: judge shape in previews, final colour in three.js.
 
 ## Checks before committing here
 1. `blender -b -P forge/smoke_crate.py` prints `FORGE_DONE`, and the previews look right.
-2. The capture-view smoke test exits 0.
-3. No generated files or projects committed (`out/`, `previews/`, `captures/`, `projects/` are ignored).
+2. `node tools/style-check.mjs examples/DESIGN.md out/smoke_crate.glb` passes.
+3. `node tools/design-tokens.mjs examples/DESIGN.md out/design.json`, then the capture-view smoke test exits 0 and `state.json` shows every material on a role.
+4. No generated files or projects committed (`out/`, `previews/`, `captures/`, `projects/` are ignored).
