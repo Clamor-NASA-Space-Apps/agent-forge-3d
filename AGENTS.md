@@ -34,6 +34,7 @@ A factory where an AI agent builds 3D browser games without "seeing" 3D. Open `c
 - **Recipes ask for roles:** `mat("body")`. A raw colour or an unknown role raises. Seven core roles always exist: `body, trim, accent, metal, glass, rock, light`.
 - **Every model in the browser goes through `applyHouseStyle()`, every scene through `applyLighting()`** (`runtime/house-style.js`). An unmapped kit material logs a warning; fix it with a `kit` entry, never in code.
 - **Model file names start with their class** (`building_*`, `vehicle_*`, `rock_*`); anything else counts as `prop`. That picks the budget `style-check` applies.
+- **Optional themes** (a settings switch): `DESIGN.<theme>.md` beside DESIGN.md, the only other files with colour values. Same roles, same `geometry` (models are shared), only colours and light differ; style-check every file. `shading: flat` reaches kit models through `applyHouseStyle()`.
 - **Changing the look** is a DESIGN.md edit the user approves, shown with `npx design.md diff old.md new.md`. Never in code, never silently.
 
 ## Saving tokens

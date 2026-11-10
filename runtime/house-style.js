@@ -18,6 +18,8 @@ function role(design, name) {
     byName[name] = new THREE.MeshStandardMaterial({
       name, color: t.color, roughness: t.roughness ?? 0.6, metalness: t.metalness ?? 0,
       emissive: t.emissive ? t.color : 0x000000, emissiveIntensity: t.emissive || 0,
+      // forge models bake their normals, but kit models and built-ins only facet here
+      flatShading: design.geometry?.shading === 'flat',
     });
   }
   return byName[name];
