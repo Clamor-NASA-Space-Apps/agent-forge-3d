@@ -83,6 +83,7 @@ Use them to fill gaps and to sanity-check a source. `g` is gravity, so they carr
 - **Build:** `node ../../tools/feel-probe.mjs data/reality.json .` starts the game and plays every row that has a `measure` with real input events, one engine step per sample, then compares what the hero did. Speed is taken from position, never from a reported speed. `--only id,id` plays a few rows. `--film id,id` tiles eight frames of a run into `captures/<id>.png`; look at one for every gait and every jump. Exit 0 all pass, 1 a row failed, 2 a row could not be measured.
 - **Checks first:** wire the fixture scene (`probe.scene`), the hooks and the probe before any lane starts. The game calls `Forge.register(self)` and has `render_game_to_text()` (a Dictionary with the hero's position at `probe.pos`), `place(pos, yaw_deg)` for rows with `at`, and `set_view(name)` for films. The probe should fail on every measured row and error on none. A lane is done when its rows pass.
 - **Bots** move through the same rows: a bot that covers ground faster than the hero's speed row, or jumps in less time than the jump takes, proves nothing.
+- A sheet row with `limit: max` passes on a hero that does nothing. The probe fails a jump that never left the ground; for every other ceiling, a second row must prove the move happens.
 
 ## What the sheet cannot see
 Feel that is not a number: whether the gallop looks like a gallop, whether a pose looks natural. That is what the films and the user's five minutes of play are for (`skills/game-feel-gate`).
