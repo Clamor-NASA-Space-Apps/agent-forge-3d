@@ -22,6 +22,22 @@ if os.environ.get("FORGE_PROBES"):
         runpy.run_path(probe, run_name="__main__")
 
 want = dict(a.split("=") for a in sys.argv[sys.argv.index("--") + 1:]) if "--" in sys.argv else {}
+WIDE = 25.0  # metres of models in one picture: a longer row is a strip nobody can judge
+pages = []
+
+
+def shoot(x, depth):
+    """Finish a row with the scale reference and the ground, and take its picture."""
+    # the scale reference is not a model, so it gets a plain grey outside the palette
+    human = lib.DESIGN.get("geometry", {}).get("human", 1.8)
+    grey = lib._new_mat("lineup_person", (0.18, 0.18, 0.18), 0.9)
+    lib.cyl("person_body", 0.22, human - 0.4, (x + 0.3, 0, (human - 0.4) / 2), grey, 16)
+    lib.sphere("person_head", 0.18, (x + 0.3, 0, human - 0.2), grey, 16)
+    ground_hex = lib.DESIGN.get("lighting", {}).get("ground", "#6f6a64")
+    lib.box("ground", (x + 2, depth + 2, 0.02), (x / 2, 0, -0.01), lib._new_mat("lineup_ground", lib.linear(ground_hex), 1.0))
+    pages.extend(lib.render_views(f"lineup_{len(pages) + 1}" if pages else "lineup", {"": (0.1, -1, 0.3)}, 1600, 640, 1.7))
+
+
 lib.reset()
 x, depth = 0.0, 2.0
 for glb in sorted(glob.glob(os.path.join(lib.OUT, "*.glb"))):
@@ -48,13 +64,11 @@ for glb in sorted(glob.glob(os.path.join(lib.OUT, "*.glb"))):
         if o.parent is None:
             o.location.x += x - lo_x
     x += hi_x - lo_x + 0.8
+    if x > WIDE:  # this row is full: the next model starts a new picture (lineup_2.png, ...)
+        shoot(x, depth)
+        lib.reset()
+        x, depth = 0.0, 2.0
 
-# the scale reference is not a model, so it gets a plain grey outside the palette
-human = lib.DESIGN.get("geometry", {}).get("human", 1.8)
-grey = lib._new_mat("lineup_person", (0.18, 0.18, 0.18), 0.9)
-lib.cyl("person_body", 0.22, human - 0.4, (x + 0.3, 0, (human - 0.4) / 2), grey, 16)
-lib.sphere("person_head", 0.18, (x + 0.3, 0, human - 0.2), grey, 16)
-ground_hex = lib.DESIGN.get("lighting", {}).get("ground", "#6f6a64")
-lib.box("ground", (x + 2, depth + 2, 0.02), (x / 2, 0, -0.01), lib._new_mat("lineup_ground", lib.linear(ground_hex), 1.0))
-
-print("FORGE_DONE", *lib.render_views("lineup", {"": (0.1, -1, 0.3)}, 1600, 640, 1.7))
+if x > 0.0 or not pages:
+    shoot(x, depth)
+print("FORGE_DONE", *pages)
