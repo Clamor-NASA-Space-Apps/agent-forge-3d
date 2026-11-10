@@ -55,7 +55,7 @@ def reset():
 
 
 def mat(name, *raw):
-    """The DESIGN.md material role `name`, shared across parts (fewer draw calls in three.js).
+    """The DESIGN.md material role `name`, shared across parts (fewer draw calls in the game).
 
     Only roles from DESIGN.md exist. A raw colour is refused on purpose: it is how five agents end
     up with five styles. Need a new look? Add a role to DESIGN.md, with the user's approval.
@@ -181,7 +181,7 @@ def _bounds():
 
 
 def ground_origin():
-    """Shift everything so the model sits on z=0, centred on x/y (three.js places it on the ground)."""
+    """Shift everything so the model sits on z=0, centred on x/y (the game places it on the ground)."""
     lo, hi = _bounds()
     shift = Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z))
     for o in _meshes():
@@ -210,7 +210,7 @@ def _stage():
     bg.inputs[1].default_value = L.get("ambient", 1.0) * 0.5
     sc.world = world
     sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN"))
-    # ponytail: three.js and Cycles units differ; 0.6x is close enough to judge shape and colour
+    # ponytail: engine and Cycles units differ; 0.6x is close enough to judge shape and colour
     sun.data.energy = L.get("sun", 2.5) * 0.6
     sun.data.color = linear(L.get("sunColor", "#ffffff"))
     sun.rotation_euler = (math.radians(90 - L.get("elevation", 40)), 0, math.radians(L.get("azimuth", 35)))

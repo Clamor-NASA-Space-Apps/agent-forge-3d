@@ -4,3 +4,5 @@ previews/
 captures/
 __pycache__/
 projects/
+.godot/
+build/
