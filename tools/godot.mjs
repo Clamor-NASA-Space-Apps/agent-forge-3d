@@ -18,10 +18,22 @@ export function godot(args, opts = {}) {
   return r;
 }
 
-// A project that was never opened has no import cache, and its models and textures fail to load.
+// Is there a model, picture or sound the engine has not imported yet (no `.import` beside it)?
+function unimported(dir) {
+  const names = fs.readdirSync(dir);
+  if (names.includes('.gdignore')) return false;
+  return names.some(n => {
+    const f = path.join(dir, n);
+    if (fs.statSync(f).isDirectory()) return !n.startsWith('.') && n !== 'build' && unimported(f);
+    return /\.(glb|gltf|png|jpg|svg|ogg|wav)$/.test(n) && !names.includes(n + '.import');
+  });
+}
+
+// A project that was never opened has no import cache, and a file added with the editor closed is not in it:
+// both fail to load. (A new `class_name` is still unknown until the next import; preload scripts by path.)
 export function ensureImported(project) {
   if (!fs.existsSync(path.join(project, 'project.godot'))) throw new Error(`${project} has no project.godot`);
-  if (!fs.existsSync(path.join(project, '.godot'))) godot(['--headless', '--path', project, '--import']);
+  if (!fs.existsSync(path.join(project, '.godot')) || unimported(project)) godot(['--headless', '--path', project, '--import']);
 }
 
 // job: { out, advance?: ms, views?: [names], runs?: [...] }  (see forge.gd for a run)
