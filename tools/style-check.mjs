@@ -3,7 +3,8 @@
 //   node tools/style-check.mjs DESIGN.md [model.glb ...]
 //
 // 1. Google's DESIGN.md linter, minus the warnings our documented 3D extension causes.
-// 2. The 3D keys: core material roles exist, every colour resolves, budgets are set.
+// 2. The 3D keys: core material roles exist, every colour resolves, budgets are set, a role's `detail` and
+//    `lit` and the `quality` presets hold only values the house style knows.
 // 3. Each GLB: material names are roles, colours and roughness match their token,
 //    triangles and height fit the budget of its class (file-name prefix, else "prop").
 // Exit 1 on any failure.
@@ -17,7 +18,7 @@ import { MeshoptDecoder } from 'meshoptimizer';
 import { loadDesign } from './design-tokens.mjs';
 
 const CORE = ['body', 'trim', 'accent', 'metal', 'glass', 'rock', 'light'];
-const EXT = ['materials', 'geometry', 'lighting', 'kit'];
+const EXT = ['materials', 'geometry', 'lighting', 'kit', 'quality'];
 const TOL = 0.02;
 const [designFile, ...glbs] = process.argv.slice(2);
 if (!designFile) { console.error('usage: style-check.mjs DESIGN.md [model.glb ...]'); process.exit(2); }
@@ -42,6 +43,32 @@ for (const f of lint.findings) {
 const mats = d.materials || {};
 for (const r of CORE) if (!mats[r]) fails.push(`materials: core role "${r}" is missing`);
 for (const [n, m] of Object.entries(mats)) if (!/^#[0-9a-f]{6}$/i.test(m.color)) fails.push(`materials.${n}: color "${m.color}" is not a #rrggbb value`);
+// what godot/addons/forge (house_style.gd, surface.gdshader) reads; a typo there would silently show nothing
+const PATTERNS = ['grain', 'bricks', 'tiles', 'planks'];
+const QUALITY = {
+  msaa: v => [0, 2, 4, 8].includes(v), scale: v => v >= 0.25 && v <= 1, shadows: v => [0, 1, 2, 4].includes(v),
+  shadowMap: v => [256, 512, 1024, 2048, 4096].includes(v), glow: v => typeof v === 'number' && v >= 0,
+  lamps: v => Number.isInteger(v) && v >= 0, detail: v => ['off', 'code', 'texture'].includes(v),
+};
+const hex = v => /^#[0-9a-f]{6}$/i.test(v), size = v => [v].flat().every(n => typeof n === 'number' && n > 0) && [v].flat().length <= 2;
+for (const [n, m] of Object.entries(mats)) {
+  const t = m.detail, l = m.lit;
+  if (t) {
+    if (!PATTERNS.includes(t.pattern)) fails.push(`materials.${n}.detail.pattern "${t.pattern}" is not one of ${PATTERNS.join(', ')}`);
+    if (!size(t.size ?? 1) || !size(t.textureSize ?? 1)) fails.push(`materials.${n}.detail: size and textureSize are metres, a number or [w, h]`);
+    if (!((t.strength ?? 0.4) >= 0 && (t.strength ?? 0.4) <= 1)) fails.push(`materials.${n}.detail.strength is 0 to 1`);
+    if (t.texture && !fs.existsSync(path.join(path.dirname(designFile), t.texture))) fails.push(`materials.${n}.detail.texture: no file ${t.texture} beside ${path.basename(designFile)}`);
+  }
+  if (l && !(hex(l.color) && (l.share ?? 0.5) >= 0 && (l.share ?? 0.5) <= 1 && (l.period ?? 60) > 0)) fails.push(`materials.${n}.lit needs a #rrggbb color, a share of 0 to 1 and a period in seconds`);
+}
+if (d.quality) {
+  // default_quality() answers low or high, and a settings screen offers all three
+  for (const level of ['low', 'medium', 'high']) if (!d.quality[level]) fails.push(`quality.${level} is missing`);
+  for (const [level, q] of Object.entries(d.quality)) for (const [k, v] of Object.entries(q)) {
+    if (!QUALITY[k]) fails.push(`quality.${level}.${k} is not a key set_quality() reads (${Object.keys(QUALITY).join(', ')})`);
+    else if (!QUALITY[k](v)) fails.push(`quality.${level}.${k}: ${JSON.stringify(v)} is out of range`);
+  }
+}
 const budgets = d.geometry?.budgets || {};
 if (!budgets.prop) fails.push('geometry.budgets.prop is missing');
 

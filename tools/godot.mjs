@@ -25,7 +25,7 @@ function unimported(dir) {
   return names.some(n => {
     const f = path.join(dir, n);
     if (fs.statSync(f).isDirectory()) return !n.startsWith('.') && n !== 'build' && unimported(f);
-    return /\.(glb|gltf|png|jpg|svg|ogg|wav)$/.test(n) && !names.includes(n + '.import');
+    return /\.(glb|gltf|png|jpg|webp|svg|ogg|wav)$/.test(n) && !names.includes(n + '.import');
   });
 }
 

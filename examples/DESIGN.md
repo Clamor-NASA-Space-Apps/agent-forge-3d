@@ -71,7 +71,7 @@ materials:
   accent: { color: "{colors.accent}", roughness: 0.45, metalness: 0 }
   metal: { color: "{colors.metal}", roughness: 0.35, metalness: 1 }
   glass: { color: "{colors.glass}", roughness: 0.1, metalness: 0 }
-  rock: { color: "{colors.rock}", roughness: 0.95, metalness: 0 }
+  rock: { color: "{colors.rock}", roughness: 0.95, metalness: 0, detail: { pattern: grain, size: 0.4, strength: 0.4 } }
   light: { color: "{colors.light}", roughness: 0.4, metalness: 0, emissive: 2 }
 geometry:
   shading: smooth
@@ -95,6 +95,10 @@ lighting:
   exposure: 1.0
   toneMapping: aces
   fog: { color: "{colors.sky}", near: 40, far: 160 }
+quality:
+  low: { msaa: 0, scale: 0.75, shadows: 0, glow: 0, lamps: 4, detail: off }
+  medium: { msaa: 2, scale: 1, shadows: 2, shadowMap: 1024, glow: 0.5, detail: code }
+  high: { msaa: 4, scale: 1, shadows: 4, shadowMap: 2048, glow: 0.5, detail: texture }
 kit:
   "metal|steel|iron|chrome": metal
   "glass|window|screen": glass
@@ -111,7 +115,7 @@ project copies. **A real project never ships it:** its own DESIGN.md is written 
 shown reference images and picked one of three rendered variants.
 
 The front matter is the normative part, in Google Labs' DESIGN.md format (`npx design.md lint`
-checks it). The 3D keys (`materials`, `geometry`, `lighting`, `kit`) are our extension; the linter
+checks it). The 3D keys (`materials`, `geometry`, `lighting`, `quality`, `kit`) are our extension; the linter
 accepts them. This file is the only place a colour value may appear. The forge (`forge/lib.py`),
 the browser (`runtime/house-style.js`) and the checker (`tools/style-check.mjs`) all read it.
 
@@ -154,6 +158,26 @@ HUD cards at 16 px radius, buttons as pills.
 The seven core roles every DESIGN.md must define, because probes and kit mapping use them: `body`,
 `trim`, `accent`, `metal`, `glass`, `rock`, `light`. A project adds more if its references need them.
 A recipe asks for a material by role name (`mat("body")`); a raw colour is an error.
+
+A role may also say what its surface is made of, for meshes that never move (the engine lays it on by
+world position, so it would slide over anything that walks):
+- `detail: { pattern, size, strength, texture, textureSize }`. `pattern` is drawn by code: `grain`,
+  `bricks`, `tiles` or `planks`, `size` metres per repeat (a number, or `[w, h]`), `strength` 0 to 1.
+  `texture` is a photo beside this file, `textureSize` metres across, shown where a quality preset asks
+  for it. Either one only shades the role's colour, light and dark: the palette stays the palette.
+- `shadow: false`: the role only ever lies flat on the ground (a road, a lawn), so drawing it into the
+  sun's shadow map would be work for nothing.
+- `lit: { color, emissive, share, period }`: panes of this role light up one by one, `share` of them
+  at any moment, each deciding again every `period` seconds. For windows at night.
+
+## Quality
+
+`quality` holds the presets a player can choose between, `low`, `medium` and `high`. A phone starts on
+`low`, anything else on `high`. Each preset sets all of these, so switching leaves nothing behind:
+- `msaa` (0, 2, 4, 8) and `scale` (the 3D picture's size as a share of the window): edges and pixels.
+- `shadows` (0 for none, else the sun's splits: 1, 2 or 4) and `shadowMap` (pixels).
+- `glow` (0 for none, else its strength) and `lamps` (how many lamps shine at once, the nearest ones).
+- `detail`: `off`, `code` (each role's pattern) or `texture` (its photo, where it names one).
 
 ## Geometry & Proportions
 
