@@ -25,10 +25,12 @@ A factory where an AI agent builds 3D browser games without "seeing" 3D. Open `c
 5. **Build a section in bulk.** Parallel agents for independent lanes (same checkout, disjoint folders; see Gotchas). You merge.
    From the second section on, resume each lane agent with SendMessage instead of a fresh agent: it keeps its code in context and the brief halves.
    Run the bots early: a 100% win rate is a design bug that no screenshot shows.
+   Put the `skills/game-feel-gate` rows that apply into the lane briefs as checks; read `skills/character-life` for any hero or animal and `skills/living-world` for traffic and crowds.
 6. **Gate the section.**
    - Re-run every agent's check yourself (`node --test`, capture-view). An agent's report is a lead, not proof. Read its diff before merging.
    - `node ../../tools/style-check.mjs DESIGN.md public/models/*.glb` passes (from the project folder), and one fresh lineup render is compared with the approved variant.
    - Run the `code-review` skill at `medium`. Fix only real bugs and regressions in normal use, re-review at most once, and send everything else to `findings.md`, one line each.
+   - **The user plays the build** (five minutes) before the boxes are ticked: tests, bots and preset shots all passed a game that felt dead.
    - Tick the boxes, commit, push.
 7. **Lessons**, then the next section. See Self-improvement.
 
@@ -90,6 +92,9 @@ The factory gets better every time it hits an obstacle.
 - **Gotchas:** anything that took more than two tries becomes one line with its why, in the Gotchas of the right `AGENTS.md`. Generic → here (public: no game content, no secrets). Project-only → the project's file.
 - **Keep each `AGENTS.md` under about 150 lines.** Merge duplicates, prune what no longer bites.
 
+## Skills
+`skills/<name>/SKILL.md` (linked at `.claude/skills`): `game-feel-gate` (the playtest checklist), `character-life` (controller feel, procedural life, moods, death), `living-world` (traffic and crowds in budget), `rapier-character` (physics hero beside a pure sim). Add one when a lesson needs more than a gotcha line.
+
 ## Tools
 | Tool | Use |
 |---|---|
@@ -100,7 +105,7 @@ The factory gets better every time it hits an obstacle.
 | `runtime/house-style.js` | `applyHouseStyle(root, design)`, `applyLighting(scene, renderer, design)` |
 | `tools/capture-view.mjs` | `node tools/capture-view.mjs <url> [outDir] [--views a,b] [--advance ms] [--scale 0.5] [--eval js]`: screenshots per preset view + `state.json` + `console.log`; exit 1 on errors |
 | `tools/preview/` | A style variant in three.js: `?design=<tokens.json>&glb=a.glb,b.glb&lamps=2`, capture with `--views three,low`. Probes in a row, a 1.8 m person, one swatch sphere per material role, lamps from `lighting.lamp` |
-| `tools/kit-roles.mjs` | `node tools/kit-roles.mjs DESIGN.md public/models kit/*.glb --scale 8 --prefix building_`: atlas-textured kit models (Kenney 2.x) to one primitive per role, by `#hex: role` anchors in DESIGN.md `kit`. `--palette` lists the atlas colours to map |
+| `tools/kit-roles.mjs` | `node tools/kit-roles.mjs DESIGN.md public/models kit/*.glb --scale 8 --prefix building_`: atlas-textured kit models (Kenney 2.x) to one primitive per role, by `#hex: role` anchors in DESIGN.md `kit`. `--palette` lists the atlas colours to map, `--swap a=b` repaints one run; keeps skins and clips |
 | `tools/ref-palette.mjs` | `node tools/ref-palette.mjs design/refs [--thumbs dir] [--colors 8]`: an N-colour palette row per reference image, plus ≤1000 px copies to open big refs cheaply. Needs ffmpeg |
 | `tools/html-to-png.mjs` | `node tools/html-to-png.mjs in.html out.png [--selector "#card"] [--scale 2]`: a local HTML/SVG chart, diagram or slide to a cropped PNG |
 
@@ -123,10 +128,9 @@ The factory gets better every time it hits an obstacle.
 
 ## Gotchas
 - Blender 5.2: `shade_smooth_by_angle` + the `WEIGHTED_NORMAL` modifier replace the old auto-smooth. Principled BSDF emission inputs are `Emission Color` / `Emission Strength`.
-- Blender's `matrix_world` is stale after a location change until `view_layer.update()`; `_bounds()` calls it, so framing is right.
 - In three.js a metal with no `scene.environment` renders black. `applyLighting()` sets a sky-coloured one.
 - capture-view waits for `window.capture` or `window.render_game_to_text`: `networkidle` fires while a module is still parsing models, and the shot came out black about 1 in 5 runs. Define the hooks last.
-- Blender `-b -P` exits 0 on a Python error unless you add `--python-exit-code 1`.
+- Blender `-b -P` exits 0 on a Python error unless you add `--python-exit-code 1`. Distro builds may log an OpenColorIO version error: renders still work in raw colour, so judge shape in previews and colour in three.js.
 - `gltf-transform optimize` defaults merge things the game needs by name: `--join`/`--instance` fold same-material parts into one node (pass `false` for models the game hides part by part), `--palette` merges materials and loses role names (pass `false`). style-check reads meshopt GLBs, so check after optimizing.
 - Forge previews only have the DESIGN.md rig, in raw colour, so a night variant renders near black. If the look depends on a game light (a fire, a lamp), give DESIGN.md a `lighting.lamp` (`makeLamp()` in house-style.js) and render each variant with `tools/preview/` before the user picks.
 - capture-view calls `setView` itself, so it hides a game that never sets its own start camera. Check one shot with `--eval "window.capture = undefined"`.
@@ -138,8 +142,7 @@ The factory gets better every time it hits an obstacle.
 - A review finding can be wrong: run the check it names before merging the fix. A "UV 1.0 samples column 0" fix would have broken REPEAT sampling, which is the glTF default and what the GPU does.
 - `gltf-transform optimize` (meshopt) quantizes meshes and folds an offset into each mesh node, so a part's origin leaves its joint. Animated parts need an empty joint node holding a `<part>_mesh` child, plus `--flatten false --join false --instance false`; code rotates the joint, never `*_mesh`.
 - Animated rigs cost one draw call per joint part per material, and again in the shadow pass: six NPCs took a 19-call world to 157. Turn off `castShadow` on NPCs (keep the hero's) and join static parts per role in the recipe.
-- In a shared checkout a lane's capture can crash on another lane's half-written data file (a missing tuning key). Re-run once before treating it as a bug.
-- Some distro Blender builds log an OpenColorIO version error. Renders still work, in raw colour: judge shape in previews, final colour in three.js.
+- In a shared checkout a lane's capture can crash on another lane's half-written data file (a missing tuning key). Re-run once before treating it as a bug. A save by another lane also makes Vite reload the page mid-check ("Execution context was destroyed").
 
 ## Checks before committing here
 1. `blender -b -P forge/smoke_crate.py` prints `FORGE_DONE`, and the previews look right.

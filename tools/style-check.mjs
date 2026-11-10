@@ -11,7 +11,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Logger, NodeIO, getBounds } from '@gltf-transform/core';
+import { Logger, NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { MeshoptDecoder } from 'meshoptimizer';
 import { loadDesign } from './design-tokens.mjs';
@@ -45,6 +45,32 @@ for (const [n, m] of Object.entries(mats)) if (!/^#[0-9a-f]{6}$/i.test(m.color))
 const budgets = d.geometry?.budgets || {};
 if (!budgets.prop) fails.push('geometry.budgets.prop is missing');
 
+// column-major 4x4 helpers, enough to place a mesh's vertices in the scene
+const mul = (a, b) => Array.from({ length: 16 }, (_, i) => [0, 1, 2, 3].reduce((s, k) => s + a[k * 4 + (i % 4)] * b[(i >> 2) * 4 + k], 0));
+const apply = (m, p) => [0, 1, 2].map(r => m[r] * p[0] + m[4 + r] * p[1] + m[8 + r] * p[2] + m[12 + r]);
+// getBounds() places a skinned mesh by its node, which glTF ignores: a skinned mesh sits where its
+// joints put it, so at rest it is placed by joint world matrix times inverse bind matrix
+// only what the scene renders: nodes outside it (a spare LOD, a helper) never show up in the game
+function sceneNodes(doc) {
+  const nodes = [];
+  (doc.getRoot().getDefaultScene() ?? doc.getRoot().listScenes()[0])?.traverse(n => nodes.push(n));
+  return nodes;
+}
+function bounds(doc) {
+  const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+  for (const node of sceneNodes(doc)) for (const p of node.getMesh()?.listPrimitives() || []) {
+    const skin = node.getSkin(), pos = p.getAttribute('POSITION');
+    // no inverse bind matrices means identity (glTF spec); the skinned node's own transform never counts
+    const ibm = skin?.getInverseBindMatrices()?.getElement(0, []), joint = skin?.listJoints()[0].getWorldMatrix();
+    const m = skin ? (ibm ? mul(joint, ibm) : joint) : node.getWorldMatrix();
+    for (let v = 0; v < pos.getCount(); v++) { // getElement undoes meshopt's normalized ints; getMin does not
+      const w = apply(m, pos.getElement(v, []));
+      for (let i = 0; i < 3; i++) { min[i] = Math.min(min[i], w[i]); max[i] = Math.max(max[i], w[i]); }
+    }
+  }
+  return { min, max };
+}
+
 const lin = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
 // projects ship meshopt-compressed GLBs (gltf-transform optimize); without the extensions they fail to load
 await MeshoptDecoder.ready;
@@ -65,10 +91,10 @@ for (const file of glbs) {
     if (Math.abs(m.getMetallicFactor() - (t.metalness ?? 0)) > TOL) fails.push(`${name}: "${m.getName()}" metalness ${m.getMetallicFactor()} != ${t.metalness ?? 0}`);
   }
   let tris = 0;
-  for (const node of doc.getRoot().listNodes()) for (const p of node.getMesh()?.listPrimitives() || []) {
+  for (const node of sceneNodes(doc)) for (const p of node.getMesh()?.listPrimitives() || []) {
     tris += (p.getIndices()?.getCount() ?? p.getAttribute('POSITION').getCount()) / 3;
   }
-  const { min, max } = getBounds(doc.getRoot().getDefaultScene() || doc.getRoot().listScenes()[0]);
+  const { min, max } = bounds(doc);
   const h = max[1] - min[1];
   if (b.tris && tris > b.tris) fails.push(`${name}: ${tris} triangles, ${cls} budget is ${b.tris}`);
   if (b.height && (h < b.height[0] || h > b.height[1])) fails.push(`${name}: ${h.toFixed(2)} m tall, ${cls} range is ${b.height.join('-')} m`);

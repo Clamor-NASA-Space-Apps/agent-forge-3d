@@ -1,11 +1,14 @@
 #!/usr/bin/env node
-// Usage: node tools/kit-roles.mjs DESIGN.md <outDir> <in.glb ...> [--palette] [--prefix building_] [--tol 60] [--scale 8]
+// Usage: node tools/kit-roles.mjs DESIGN.md <outDir> <in.glb ...> [--palette] [--prefix building_] [--tol 60] [--scale 8] [--swap a=b,c=d]
 // Kenney 2.x kits colour every model from one atlas texture ("colormap"), so one material covers
 // walls, roofs and windows and applyHouseStyle() can only paint the whole model one role.
 // This reads the atlas colour under each triangle, maps it to a role through the `#rrggbb: role`
 // entries of DESIGN.md `kit`, and writes one primitive per role with DESIGN.md's material values.
 //   --palette   print every atlas colour the inputs use (triangle count, current role) and exit
 //   --prefix    prepend a class to output names (building_, prop_ ...) so style-check budgets apply
+//   --swap      repaint this run's models: role a becomes b (one kit swatch, a car's body, in several paints)
+// Skinned models keep JOINTS_0/WEIGHTS_0 (every attribute but TEXCOORD), the skin and the clips;
+// meshes with identical skins merge, so a character costs one draw call per role.
 // Exit 1 if a colour has no `kit` entry. Needs ffmpeg (PNG decode). Run gltf-transform optimize after.
 import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
@@ -20,12 +23,15 @@ const palette = args.includes('--palette') && args.splice(args.indexOf('--palett
 const prefix = flag('--prefix') ?? '';
 const tol = Number(flag('--tol') ?? 60);
 const scale = Number(flag('--scale') ?? 1);
+const swap = Object.fromEntries((flag('--swap') ?? '').split(',').filter(Boolean).map(p => p.split('=')));
 // --palette writes nothing, so it takes no outDir
 const [designFile, ...rest] = args;
 const outDir = palette ? null : rest.shift(), inputs = rest;
-if (!inputs.length) { console.error('usage: kit-roles.mjs DESIGN.md <outDir> <in.glb ...> [--prefix building_] [--tol 60] [--scale 8] | kit-roles.mjs DESIGN.md --palette <in.glb ...>'); process.exit(2); }
+if (!inputs.length) { console.error('usage: kit-roles.mjs DESIGN.md <outDir> <in.glb ...> [--prefix building_] [--tol 60] [--scale 8] [--swap a=b,c=d] | kit-roles.mjs DESIGN.md --palette <in.glb ...>'); process.exit(2); }
 
 const design = loadDesign(designFile);
+// a typo in --swap would silently ship the default paint
+for (const [a, b] of Object.entries(swap)) if (!design.materials?.[a] || !design.materials?.[b]) { console.error(`--swap ${a}=${b}: both sides must be DESIGN.md material roles`); process.exit(2); }
 const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
 const lin = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 const kitHex = Object.entries(design.kit || {}).filter(([k]) => /^#[0-9a-f]{6}$/i.test(k)).map(([k, role]) => [rgb(k), role]);
@@ -59,7 +65,7 @@ let unmapped = 0;
 if (!palette) mkdirSync(outDir, { recursive: true });
 for (const file of inputs) {
   const doc = await io.read(file);
-  const roleMats = {}, atlasMats = new Set();
+  const roleMats = {}, atlasMats = new Set(), atlasPrims = [];
   let holes = 0;
   const roleMat = role => roleMats[role] ||= (() => {
     const t = design.materials[role];
@@ -69,40 +75,81 @@ for (const file of inputs) {
     if (t.emissive) m.setEmissiveFactor(rgb(t.color).map(lin));
     return m;
   })();
-  for (const mesh of doc.getRoot().listMeshes()) for (const prim of mesh.listPrimitives()) {
-    const info = prim.getMaterial()?.getBaseColorTextureInfo(), tex = prim.getMaterial()?.getBaseColorTexture();
-    if (!tex) continue; // already plain colours: applyHouseStyle maps it by name
-    if (prim.getMode() !== 4) throw new Error(`${file}: primitive mode ${prim.getMode()}, only TRIANGLES (4) is supported`);
-    atlasMats.add(prim.getMaterial());
-    const { w, h, raw } = decode(tex);
-    const tt = info.getExtension('KHR_texture_transform');
-    const [ox, oy] = tt?.getOffset() ?? [0, 0], [sx, sy] = tt?.getScale() ?? [1, 1];
-    const uv = prim.getAttribute(`TEXCOORD_${info.getTexCoord()}`), idx = prim.getIndices();
-    const n = idx ? idx.getCount() : prim.getAttribute('POSITION').getCount();
-    const at = i => (idx ? idx.getScalar(i) : i);
+  // kits split a character into meshes with identical skins (Kenney: head and body); one mesh per
+  // skin lets the split below join same-role triangles, so each role is one draw call, not one per part
+  // keyed on the joint nodes themselves: two characters with look-alike skeletons in one file stay apart
+const jointIds = new Map();
+const skinKey = sk => sk.listJoints().map(j => jointIds.get(j) ?? jointIds.set(j, jointIds.size).get(j)).join() + (sk.getInverseBindMatrices()?.getArray().join() ?? '');
+  const firstBySkin = new Map();
+  for (const node of doc.getRoot().listNodes()) {
+    const sk = node.getSkin(), mesh = node.getMesh();
+    if (!sk || !mesh) continue;
+    const first = firstBySkin.get(skinKey(sk));
+    if (!first) { firstBySkin.set(skinKey(sk), node); continue; }
+    // a mesh shared by several nodes would be merged into itself and then lost from the others
+    const shared = m => m.listParents().filter(p => p.propertyType === 'Node').length > 1;
+    // a shared mesh would be merged into itself or onto other nodes; a node with children or animation would lose them
+    if (first.getMesh() === mesh || shared(mesh) || shared(first.getMesh()) || node.listChildren().length
+      || node.listParents().some(p => p.propertyType === 'AnimationChannel')) continue;
+    for (const p of mesh.listPrimitives()) first.getMesh().addPrimitive(p);
+    node.dispose();
+    mesh.dispose();
+  }
+  for (const mesh of doc.getRoot().listMeshes()) {
+    // one primitive per role and attribute layout, holding only the vertices its triangles use
     const groups = {};
-    for (let t = 0; t < n; t += 3) {
-      let u = 0, v = 0;
-      for (let k = 0; k < 3; k++) { const p = uv.getElement(at(t + k), []); u += p[0] / 3; v += p[1] / 3; }
-      u = u * sx + ox; v = v * sy + oy;
-      // sample the way the GPU does: REPEAT (the glTF default) wraps 1.0 to 0, CLAMP holds the edge
-      const x = Math.min(w - 1, Math.floor(wrap(u, info.getWrapS()) * w)), y = Math.min(h - 1, Math.floor(wrap(v, info.getWrapT()) * h));
-      const c = [...raw.subarray((y * w + x) * 3, (y * w + x) * 3 + 3)];
-      const hex = hexOf(c);
-      seen.set(hex, (seen.get(hex) || 0) + 1);
-      const role = roleOf(c);
-      if (!role) { unmapped++; holes++; continue; }
-      (groups[role] ||= []).push(at(t), at(t + 1), at(t + 2));
+    for (const [pi, prim] of mesh.listPrimitives().entries()) {
+      const info = prim.getMaterial()?.getBaseColorTextureInfo(), tex = prim.getMaterial()?.getBaseColorTexture();
+      if (!tex) continue; // already plain colours: applyHouseStyle maps it by name
+      if (prim.getMode() !== 4) throw new Error(`${file}: primitive mode ${prim.getMode()}, only TRIANGLES (4) is supported`);
+      atlasMats.add(prim.getMaterial());
+      const { w, h, raw } = decode(tex);
+      const tt = info.getExtension('KHR_texture_transform');
+      const [ox, oy] = tt?.getOffset() ?? [0, 0], [sx, sy] = tt?.getScale() ?? [1, 1];
+      const uv = prim.getAttribute(`TEXCOORD_${info.getTexCoord()}`), idx = prim.getIndices();
+      const n = idx ? idx.getCount() : prim.getAttribute('POSITION').getCount();
+      const at = i => (idx ? idx.getScalar(i) : i);
+      const sems = prim.listSemantics().filter(x => !x.startsWith('TEXCOORD'));
+      const layout = sems.map(x => x + prim.getAttribute(x).getType() + prim.getAttribute(x).getArray().constructor.name + prim.getAttribute(x).getNormalized());
+      for (let t = 0; t < n; t += 3) {
+        let u = 0, v = 0;
+        for (let k = 0; k < 3; k++) { const p = uv.getElement(at(t + k), []); u += p[0] / 3; v += p[1] / 3; }
+        u = u * sx + ox; v = v * sy + oy;
+        // sample the way the GPU does: REPEAT (the glTF default) wraps 1.0 to 0, CLAMP holds the edge
+        const x = Math.min(w - 1, Math.floor(wrap(u, info.getWrapS()) * w)), y = Math.min(h - 1, Math.floor(wrap(v, info.getWrapT()) * h));
+        const c = [...raw.subarray((y * w + x) * 3, (y * w + x) * 3 + 3)];
+        const hex = hexOf(c);
+        seen.set(hex, (seen.get(hex) || 0) + 1);
+        const role = swap[roleOf(c)] ?? roleOf(c);
+        if (!role) { unmapped++; holes++; continue; }
+        const g = groups[role + layout] ||= { role, prim, sems, map: new Map(), attrs: sems.map(() => []), list: [] };
+        for (let k = 0; k < 3; k++) {
+          const vi = at(t + k), key = pi + ':' + vi;
+          if (!g.map.has(key)) {
+            g.map.set(key, g.map.size);
+            sems.forEach((x, j) => { const a = prim.getAttribute(x), sz = a.getElementSize(); g.attrs[j].push(...a.getArray().subarray(vi * sz, vi * sz + sz)); });
+          }
+          g.list.push(g.map.get(key));
+        }
+      }
+      if (prim.listTargets().length) throw new Error(`${file}: morph targets are not supported`);
+      atlasPrims.push(prim);
     }
     if (palette) continue;
-    for (const [role, list] of Object.entries(groups)) {
-      const p = doc.createPrimitive().setMaterial(roleMat(role)).setMode(prim.getMode())
-        .setIndices(doc.createAccessor().setType('SCALAR').setArray(new Uint32Array(list)).setBuffer(doc.getRoot().listBuffers()[0]));
-      for (const s of prim.listSemantics()) if (!s.startsWith('TEXCOORD')) p.setAttribute(s, prim.getAttribute(s));
+    const buf = doc.getRoot().listBuffers()[0];
+    for (const { role, prim, sems, attrs, list } of Object.values(groups)) {
+      const p = doc.createPrimitive().setMaterial(roleMat(role)).setMode(4)
+        .setIndices(doc.createAccessor().setType('SCALAR').setArray(new Uint32Array(list)).setBuffer(buf));
+      // raw copies keep each attribute's own encoding (normalized ints, JOINTS_0 u8/u16) exactly
+      sems.forEach((x, j) => { const a = prim.getAttribute(x); p.setAttribute(x, doc.createAccessor().setType(a.getType()).setNormalized(a.getNormalized()).setArray(new (a.getArray().constructor)(attrs[j])).setBuffer(buf)); });
       mesh.addPrimitive(p);
     }
-    mesh.removePrimitive(prim);
-    prim.dispose();
+    for (const prim of atlasPrims.splice(0)) {
+      const old = [prim.getIndices(), ...prim.listAttributes()].filter(Boolean);
+      mesh.removePrimitive(prim); prim.dispose();
+      // the writer keeps every accessor still in the root: drop the source copies nothing uses now
+      for (const a of old) if (a.listParents().every(p => p.propertyType === 'Root')) a.dispose();
+    }
   }
   if (palette) continue;
   // a model with unmapped triangles would ship with holes: never write it
