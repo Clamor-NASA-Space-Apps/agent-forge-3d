@@ -135,10 +135,12 @@ function main() {
         try {
           const { got, curve } = measure(row, played[row.id]);
           const tol = row.tol ?? probe.tol ?? 0.1;
-          const ok = row.limit === 'max' ? got <= row.value : row.limit === 'min' ? got >= row.value : Math.abs(got - row.value) <= tol * Math.abs(row.value);
+          // a jump that never left the ground is under every ceiling: without this a hero that cannot jump passes its `max` rows
+          const flat = row.measure === 'jump' && got < 0.01;
+          const ok = !flat && (row.limit === 'max' ? got <= row.value : row.limit === 'min' ? got >= row.value : Math.abs(got - row.value) <= tol * Math.abs(row.value));
           if (played[row.id].frames.length) tile(played[row.id].frames, path.join(outDir, `${row.id}.png`));
           if (!ok) failed++;
-          line(ok ? 'PASS' : 'FAIL', row.id, `${row.measure} measured ${+got.toFixed(3)} ${row.unit}, wants ${row.limit === 'max' ? 'at most ' : row.limit === 'min' ? 'at least ' : ''}${row.value}`);
+          line(ok ? 'PASS' : 'FAIL', row.id, `${row.measure} measured ${+got.toFixed(3)} ${row.unit}, wants ${row.limit === 'max' ? 'at most ' : row.limit === 'min' ? 'at least ' : ''}${row.value}${flat ? ' (nothing left the ground)' : ''}`);
           results.push({ id: row.id, measure: row.measure, measured: +got.toFixed(4), value: row.value, ok, curve });
         } catch (e) {
           errored++;

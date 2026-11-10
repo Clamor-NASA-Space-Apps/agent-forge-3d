@@ -159,6 +159,10 @@ The factory gets better every time it hits an obstacle.
 - Forge previews only have the DESIGN.md rig, in raw colour, so a night variant renders near black. If the look depends on a game light (a fire, a lamp), give DESIGN.md a `lighting.lamp` and judge the variants in `godot/preview`.
 - Projects reach the tooling through `../../`, so a git worktree breaks them. Lanes with disjoint folders run in the same checkout and don't commit; you commit after reading the diff. A lane's check can crash on another lane's half-written data file: re-run once before treating it as a bug.
 - Reference images: the fastest route is giving the user Google Images search terms (one line each, saying what it's for) and letting them save into `design/refs/`. An image pasted in chat is not on disk, so ask for the file. Store and press CDNs can be blocked on a venue router, and WebFetch drops article images.
+- A web export ships only what the engine imports: data files (`*.json`) need the preset's `include_filter` (`new-project.mjs` writes it), and a reference folder inside the project (`design/refs`, `research/`) ships too unless it holds a `.gdignore`.
+- The tools import only when `.godot/` is missing, so a `class_name` added later is unknown to them ("identifier not declared"): preload scripts by path, or re-import.
+- A sheet row with `limit: max` passes on a hero that does nothing. The probe fails a jump that never left the ground; for every other ceiling, a second row must prove the move happens.
+- A downloaded "rigged, animation ready" model can hold a skeleton and no clips. List the clips before accepting it (`bpy.data.actions`, or the `animations` of the glTF). A mesh with weights and a skeleton with clips from another model of the same build can be joined: scale so hips and shoulders meet, move the joints, rename the weight groups.
 - A review finding can be wrong: run the check it names before merging the fix.
 
 ## Checks before committing here
