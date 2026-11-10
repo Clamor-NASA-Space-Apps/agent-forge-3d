@@ -28,7 +28,8 @@ A capsule sized for the legs lets the head, the rump or the shoulders pass into 
 - Measure the drawn bounds at load (length, width, height) and derive the collider set from them. Upright and compact (a person): one capsule. Long (a quadruped, a vehicle): the controller capsule at the centre plus a ball at the head and one at the rump, or one horizontal capsule.
 - With probes: after every move and every yaw change, cast each ball from the centre to its place; if it stops short, push the body back by the difference (through the controller, so a wall behind still holds). A turn that would swing the head into a wall pushes the body out or is slowed.
 - The camera, the jump targets and the perches use the same set.
-- Report `overhang` in the text hook: how far the drawn body reaches past its colliders into a static solid (0 when clear).
+- Report two measures in the text hook, both taken from the **posed drawn mesh** when the hook is read: `overhang` (how far its bounds reach into a static solid, sampled at the corners and along the top of the back and head; 0 when clear) and `groundGap` (the distance between its lowest point and the controller's feet height).
+- **A measure never reuses the query it checks.** Foot planting that asks the wrong floor will report perfect feet from that same floor. Example: a floor ray that started inside a low ceiling returned the ceiling, the body was drawn stuck to it, and every foot measure read 0. Start floor rays below whatever is overhead.
 
 ## The controller
 - `createCharacterController(skin)`, `setUp(0,1,0)`, `enableAutostep` for the world's curb height, `enableSnapToGround`, `setMaxSlopeClimbAngle`, `setSlideEnabled(true)`. Feed the per-frame delta to `computeColliderMovement`, read `computedMovement()` and `computedGrounded()`.
@@ -42,6 +43,7 @@ A capsule sized for the legs lets the head, the rump or the shoulders pass into 
 ## Checks
 - `npm run feel` passes every `speed`, `ramp`, `stop`, `turn`, `burst` and `jump` row.
 - **Body sweep:** walk the hero into a wall at eight headings, and turn on the spot beside it: `overhang` stays 0.
+- **Every pose in every kind of space:** `overhang` 0 and `groundGap` near 0 standing, crouched and resting, on open floor, at the edge of and under the lowest crawl gap, on the narrowest perch and in a corner. Sheet rows hold them.
 - Steps onto the world's curb. A crawl gap blocks standing and passes crouched; standing up under it is refused.
 - A knock moves the hero. `feetBelowFloor` ≤ 0.01 in every pose.
 - If a shared Vite dev server reloads mid-check because another lane saved a file, re-run.
