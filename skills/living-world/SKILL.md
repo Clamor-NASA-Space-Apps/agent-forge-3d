@@ -18,6 +18,8 @@ A street with props and one bus is a diorama. Life means things that move on the
 - **Real proportions.** A head is about 1/7 to 1/8 of an adult's height; kids about 1/5 to 1/6. Chibi or toy kits scaled up to 1.8 m read as giants with huge heads. Check the lineup beside a 1.8 m reference before importing a kit.
 - **Walk speeds:** adults 1.2 to 1.5 m/s with a per-walker variation; the old about 0.9 to 1.1; kids up to 1.6. Only someone with a reason runs (a chasing kid, someone fleeing). A street where everyone runs reads as fake.
 - **No foot sliding:** set the clip's playback rate to movement speed divided by the speed the clip was authored for, and switch clips by speed band (idle < 0.2 m/s < walk < about 2.5 m/s < run). A procedural gait whose phase advances with distance walked never slides.
+- **Feet on the floor they walk on.** A sim usually gives NPCs y 0. Put each one on the floor under it, using a downward ray, eased over curbs. Otherwise every walker on a raised pavement wades in it.
+- **NPCs never pass through the hero or each other.** In the rules, each walker looks a little ahead. If the hero is in the way, a calm walker steps around it and a hostile one shoves it aside. In physics, every walker and animal gets a kinematic capsule, so the hero can't walk through them either. Check both: a walker meeting a hero sitting on its path never comes closer than its radius.
 - **Life beyond walking:** stops (about 1 in 4 walkers pause 2 to 6 s at a shop window or a phone), heads that turn toward the hero when it is near, and small variations in tempo and arm swing.
 
 ## Draw-call budget (keep < 150 total)

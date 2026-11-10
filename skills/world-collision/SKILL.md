@@ -23,12 +23,14 @@ Rule: **what you see is what you hit.**
    - Never leave a gap of a few centimetres between two walkable surfaces: it reads as a glitch.
    - Ground surfaces meet at the same height or with a real step.
 5. **Crawl spaces:** the gap under an obstacle is the real gap between its drawn underside and the floor. Small enemies and NPCs that do not fit can't follow the hero in there; the rules must agree (a hidden-under-cover check).
-6. **One debug view:** draw the colliders as a wireframe over the scene (`?colliders=1`). One look finds a prop with no collision, or a collider with no prop.
+6. **Moving collision to the drawn meshes moves every rule built on the old boxes.** Jump targets, landing heights, perches and hiding spots must read the drawn surface: a downward ray over the target's area, taking the highest standable hit. A box top is only a hint. A fence rail, a car roof and a planter's soil all sit at different heights from their boxes. Re-test every target on the real world, not a fixture.
+7. **One debug view:** draw the colliders as a wireframe over the scene (`?colliders=1`). One look finds a prop with no collision, or a collider with no prop.
 
 ## Automated checks (run every gate)
 - **Walk-into-every-prop sweep:** for each static prefab, put the hero 2 m away, walk straight at its centre for 3 s, and assert it stops outside the prop's drawn bounds. Skip props tagged as walk-through, such as a doormat.
 - **Curb sweep:** sample N points along every edge between two walkable surfaces. Walk across each edge both ways without jumping and assert the hero reaches the other side. Report the points that fail as coordinates.
 - **Crawl-gap check:** the hero passes crouched, is blocked standing, and a larger NPC cannot path into the gap.
+- **Target sweep:** from each free side of every climbable thing, a jump target is offered and one press lands on its drawn top.
 - **Inside view:** one capture from inside each hollow model. No see-through walls.
 
 ## Sources
