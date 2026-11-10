@@ -95,6 +95,7 @@ The factory gets better every time it hits an obstacle.
 | `tools/design-tokens.mjs` | `node tools/design-tokens.mjs DESIGN.md out.json`: resolved tokens for the browser |
 | `runtime/house-style.js` | `applyHouseStyle(root, design)`, `applyLighting(scene, renderer, design)` |
 | `tools/capture-view.mjs` | `node tools/capture-view.mjs <url> [outDir] [--views a,b] [--advance ms] [--scale 0.5] [--eval js]`: screenshots per preset view + `state.json` + `console.log`; exit 1 on errors |
+| `tools/preview/` | A style variant in three.js: `?design=<tokens.json>&glb=a.glb,b.glb&lamps=2`, capture with `--views three,low`. Probes in a row, a 1.8 m person, one swatch sphere per material role, lamps from `lighting.lamp` |
 | `tools/ref-palette.mjs` | `node tools/ref-palette.mjs design/refs [--thumbs dir] [--colors 8]`: an N-colour palette row per reference image, plus ≤1000 px copies to open big refs cheaply. Needs ffmpeg |
 | `tools/html-to-png.mjs` | `node tools/html-to-png.mjs in.html out.png [--selector "#card"] [--scale 2]`: a local HTML/SVG chart, diagram or slide to a cropped PNG |
 
@@ -121,7 +122,7 @@ The factory gets better every time it hits an obstacle.
 - capture-view waits for `window.capture` or `window.render_game_to_text`: `networkidle` fires while a module is still parsing models, and the shot came out black about 1 in 5 runs. Define the hooks last.
 - Blender `-b -P` exits 0 on a Python error unless you add `--python-exit-code 1`.
 - `gltf-transform optimize` defaults merge things the game needs by name: `--join`/`--instance` fold same-material parts into one node (pass `false` for models the game hides part by part), `--palette` merges materials and loses role names (pass `false`). style-check reads meshopt GLBs, so check after optimizing.
-- Forge previews only have the DESIGN.md rig. If the look depends on a game light (a fire, a lamp), also render each variant in three.js before the user picks.
+- Forge previews only have the DESIGN.md rig, in raw colour, so a night variant renders near black. If the look depends on a game light (a fire, a lamp), give DESIGN.md a `lighting.lamp` (`makeLamp()` in house-style.js) and render each variant with `tools/preview/` before the user picks.
 - capture-view calls `setView` itself, so it hides a game that never sets its own start camera. Check one shot with `--eval "window.capture = undefined"`.
 - Projects reach the tooling through `../../`, so a git worktree breaks them. Lanes with disjoint folders run in the same checkout and don't commit; you commit after reading the diff.
 - Reference images: the fastest route is giving the user Google Images search terms (one line each, saying what it's for) and letting them save into `design/refs/`. An image pasted in chat is not on disk, so ask for the file. Store and press CDNs (Steam) can be blocked on a venue router, and WebFetch drops article images; for 80.lv, curl the HTML and grep `cdn.80.lv/.../widen_920x0.jpg`.

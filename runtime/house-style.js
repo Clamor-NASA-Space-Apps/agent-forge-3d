@@ -78,3 +78,13 @@ export function applyLighting(scene, renderer, design) {
   scene.add(hemi, sun);
   return { hemi, sun };
 }
+
+// A game light (streetlamp, window, fire) from DESIGN.md `lighting.lamp`, so a night scene's
+// lamp pools stay in the design language too. The world data places it; null if the design has none.
+export function makeLamp(design) {
+  const l = design.lighting.lamp;
+  if (!l) return null;
+  const lamp = new THREE.PointLight(l.color, l.intensity ?? 10, l.distance ?? 10, 2);
+  lamp.name = 'lamp';
+  return lamp;
+}

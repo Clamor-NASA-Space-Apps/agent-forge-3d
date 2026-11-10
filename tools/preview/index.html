@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>DESIGN.md variant preview</title>
+<!--
+  A style variant in three.js: forge renders can't show game lights (lamps, fire) or the browser's
+  final colour. Serve the tooling root (python3 -m http.server 5179), then capture:
+    node tools/capture-view.mjs "http://127.0.0.1:5179/tools/preview/?design=/out/a.json&glb=/out/a/building_probe.glb,/out/a/vehicle_probe.glb&lamps=2" shots --views three,front
+  design: tokens from tools/design-tokens.mjs. glb: comma list. lamps: count of lighting.lamp lights over the row.
+  One swatch sphere per material role sits in front, so roles no probe uses (fur, skin) are seen too.
+-->
+<style>html,body{margin:0;height:100%;background:#111}canvas{display:block}</style>
+<script type="importmap">{ "imports": { "three": "../../node_modules/three/build/three.module.js", "three/addons/": "../../node_modules/three/examples/jsm/" } }</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { applyHouseStyle, applyLighting, makeLamp } from '../../runtime/house-style.js';
+
+const q = new URLSearchParams(location.search);
+const design = await (await fetch(q.get('design'))).json();
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 200);
+applyLighting(scene, renderer, design);
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: design.lighting.ground, roughness: 0.9 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+// models in a row, like forge/lineup.py, then the 1.8 m person in plain grey (a scale reference, not a model)
+let x = 0;
+const loader = new GLTFLoader();
+for (const url of (q.get('glb') || '').split(',').filter(Boolean)) {
+  const root = applyHouseStyle((await loader.loadAsync(url)).scene, design);
+  const box = new THREE.Box3().setFromObject(root);
+  root.position.x = x - box.min.x;
+  x += box.max.x - box.min.x + 0.8;
+  scene.add(root);
+}
+const h = design.geometry?.human ?? 1.8;
+const person = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, h - 0.44, 4, 12), new THREE.MeshStandardMaterial({ color: 0x9a9a9a }));
+person.position.set(x + 0.3, h / 2, 0); person.castShadow = true; scene.add(person);
+const width = x + 0.6;
+
+const roles = Object.keys(design.materials);
+roles.forEach((name, i) => {
+  const s = applyHouseStyle(new THREE.Mesh(new THREE.SphereGeometry(0.28, 32, 16), new THREE.MeshStandardMaterial({ name })), design);
+  s.position.set((i + 0.5) * width / roles.length, 0.28, 2.2);
+  scene.add(s);
+});
+
+const n = Number(q.get('lamps') || 0);
+for (let i = 0; i < n; i++) {
+  const lamp = makeLamp(design);
+  if (!lamp) break;
+  lamp.position.set((i + 0.5) * width / n, 3, 1.2);
+  scene.add(lamp);
+}
+
+const c = new THREE.Vector3(width / 2, 0.8, 0.6);
+const presets = { three: [c.x - width * 0.45, width * 0.45, width * 1.15], front: [c.x, 1.4, width * 1.1], low: [c.x - width * 0.3, 0.3, 4] };
+let view = 'three';
+window.capture = { setView(name) { view = presets[name] ? name : 'three'; camera.position.set(...presets[view]); camera.lookAt(c); renderer.render(scene, camera); } };
+window.advanceTime = () => renderer.render(scene, camera);
+window.render_game_to_text = () => ({ view, roles, lamps: n, drawCalls: renderer.info.render.calls });
+window.capture.setView('three');
+</script>
