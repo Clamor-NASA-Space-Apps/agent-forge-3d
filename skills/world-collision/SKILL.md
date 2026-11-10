@@ -52,7 +52,10 @@ static func drawn_overlaps(hero: CharacterBody3D, model: Node3D, lift: float, so
 	q.exclude = [hero.get_rid()]
 	return hero.get_world_3d().direct_space_state.intersect_shape(q).map(func(h: Dictionary) -> String: return str(h.collider.get_path()))
 ```
+For a skinned mesh `get_aabb()` is in the model file's own units (a person came out tens of metres wide): measure the drawn body from its bones, or from the mesh AABB times the skeleton's scale, and print the box once to check it against the sheet's size.
+
 The sweeps are runs for `play()` from `tools/feel-probe.mjs`, all in one engine start, driving the real controller with real input: `{ id, at, yaw, segs: [{ hold: ["move_forward"], ms }], watch: "player.inside" }`.
+- **Static sweep (needs no hero, so a world lane can run it before the body exists; about a second):** for every drawn face of every solid item, cast a hero-sized shape at it from outside on the solid layers and fail, with coordinates, on a face nothing stops at. With Jolt, `cast_motion()` answers `[1, 1]` (never stopped) when the shape starts inside a solid: ask `intersect_shape()` first. Prove the sweep by removing one prop's collision and watching it fail.
 - **Walk-into-every-prop sweep:** one run per static prefab in `data/world.json`. Put the hero a few body lengths away, walk straight at the prop's centre, and assert `player.inside` stays empty in every sample: that is the hero's **drawn bounds** (nose to tail), not its capsule. A test box the size of the capsule only checks the collider against itself. Skip props tagged `walk_through`, such as a doormat.
 - **Curb sweep:** sample N points along every edge between two walkable surfaces. Walk across each edge both ways without jumping and assert the last position is on the other side. Report the points that fail as coordinates.
 - **Never under the floor:** no sweep ends below the floor it started on. A triangle shape is a hollow surface: a body pushed past it (by a moving solid, or placed inside one) falls for ever.

@@ -48,7 +48,7 @@ func _run(job_path: String) -> void:
 	var out: String = job.get("out", "captures")
 	DirAccess.make_dir_recursive_absolute(out)
 	var step_ms := 1000.0 / Engine.physics_ticks_per_second
-	var result := {"errors": [], "runs": {}, "views": [], "step_ms": step_ms}
+	var result := {"errors": [], "runs": {}, "views": [], "render": {}, "step_ms": step_ms}
 	# the game registers in its own _ready, which can be many frames away while it loads models
 	for i in 1200:
 		if hooks:
@@ -66,12 +66,12 @@ func _run(job_path: String) -> void:
 			await _steps(2)
 			if await _shot(out.path_join(v + ".png"), result.errors):
 				result.views.append(v)
+				# per view: a budget is about what one camera sees, and the last view's count says nothing of the others
+				result.render[v] = {
+					"draw_calls": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
+					"primitives": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
+				}
 		result.state = _plain(hooks.render_game_to_text())
-		result.render = {
-			"draw_calls": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
-			"primitives": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
-			"objects": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME),
-		}
 	var f := FileAccess.open(out.path_join("result.json"), FileAccess.WRITE)
 	f.store_string(JSON.stringify(result))
 	f.close()

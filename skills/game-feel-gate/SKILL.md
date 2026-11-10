@@ -37,7 +37,7 @@ Rows that used to be here and are now owned elsewhere: movement with mass (`skil
 2. At the gate, run them yourself (an agent's report is a lead, not proof), from the project folder:
    - `godot --headless --path . -s tests/run.gd`: the sim tests and the bots.
    - `node ../../tools/feel-probe.mjs data/reality.json . --film <ids>`: the sheet against the running game, and the films.
-   - `node ../../tools/capture-view.mjs . captures --views <names>`: the pictures, state and `render.draw_calls`. `--views none` is the fast way to ask state a question.
+   - `node ../../tools/capture-view.mjs . captures --views <names>`: the pictures, state and `render.<view>.draw_calls`. `--views none` is the fast way to ask state a question.
    - `node ../../tools/web-check.mjs .`: the web build is what ships, so it must export, fit its budget and start in a browser.
 3. Look at the films and the low side view, not only the hero shot.
 4. Ask the user to play the web build for five minutes, on the weakest device it must run on. Log what they find in RETRO.md under "what the gate missed". Then ask which of the sheet's four questions (actor, pair, space, signal) should have caught it, and fix the question, a skill rule or a probe measure. A row here is the last choice.

@@ -142,6 +142,10 @@ static func apply_lighting(parent: Node, design: Dictionary) -> Dictionary:
 	sun.light_color = Color.html(L.get("sunColor", "#ffffff"))
 	sun.light_energy = float(L.get("sun", 2.5)) * UNIT
 	sun.shadow_enabled = true
+	# every shadow split draws each caster again, and a phone pays for it: two splits, no farther than the fog shows
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	sun.directional_shadow_max_distance = minf(float(L.get("fog", {}).get("far", 60)), 60.0)
+	sun.shadow_normal_bias = 4.0  # a split now covers more ground per texel; the default of 2 left ripples on flat tops
 	# same angles as the forge previews; Godot is Y-up, so azimuth turns around Y
 	var phi := deg_to_rad(90.0 - float(L.get("elevation", 40)))
 	var theta := deg_to_rad(float(L.get("azimuth", 35)))

@@ -54,7 +54,7 @@ The Compatibility renderer has no automatic instancing: every copy of a mesh is 
 | Far NPCs | `visibility_range_end` on their meshes hides them past a distance (frustum culling only drops off-screen ones); a `VisibleOnScreenEnabler3D` whose `enable_node_path` is the walker's `AnimationPlayer` stops its animation off screen. The sim and the body keep moving |
 | Weak devices | Traffic and walker counts per graphics preset. A phone browser answers `OS.has_feature("web_android")` or `"web_ios"`, not `"mobile"` |
 
-Measure with `node ../../tools/capture-view.mjs . captures --views road`, which prints `render.draw_calls`, with every NPC on screen at the highest preset, not with an empty street. Its draw calls are real; its frame rate is not (software drawing), so frame rate is measured on the device.
+Measure with `node ../../tools/capture-view.mjs . captures --views road`, which prints `render.<view>.draw_calls`, with every NPC on screen at the highest preset, not with an empty street. Its draw calls are real; its frame rate is not (software drawing), so frame rate is measured on the device.
 
 ## Asset path
 1. A CC0 kit (vehicles, animated characters) painted through `tools/kit-roles.mjs`, which keeps skins and clips. Map the kit's clip names to a fixed set (`idle`, `walk`, `run`, plus one action) in one table, and set `Animation.loop_mode` on the cycles (a clip whose name starts or ends with `loop` imports looping).
@@ -66,7 +66,7 @@ Measure with `node ../../tools/capture-view.mjs . captures --views road`, which 
 - A path test per chaser: from its home to where the player walks, the path ends at the target.
 - While any touch lasts, `touchGap` is under a few centimetres, and one capture shows it.
 - A sim test per NPC kind: it does its thing (a car keeps its gap, a kid chases and gives up, a grumpy walker kicks within range with a cooldown).
-- A road capture at the highest preset with `render.draw_calls` under the budget.
+- A road capture at the highest preset with `render.<view>.draw_calls` under the budget.
 - More than 3 moving things visible from the default camera on the main street.
 
 ## Sources
