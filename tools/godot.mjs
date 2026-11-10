@@ -57,3 +57,12 @@ export function runJob(project, job, { scene, gameArgs = [], width = 640, height
   fs.writeFileSync(path.join(out, 'console.log'), log.slice(0, 1 << 20));
   return { result, errors, log };
 }
+
+// Serves a web build's folder. web-check and serve-web share it.
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm', '.png': 'image/png', '.pck': 'application/octet-stream' };
+export const staticHandler = dir => (q, s) => {
+  const file = path.join(dir, path.normalize(decodeURIComponent(new URL(q.url, 'http://x').pathname)).replace(/^[/\\]+/, '') || 'index.html');
+  if (!file.startsWith(dir) || !fs.existsSync(file)) { s.writeHead(404).end(); return; }
+  s.writeHead(200, { 'content-type': TYPES[path.extname(file)] ?? 'application/octet-stream' });
+  fs.createReadStream(file).pipe(s);
+};

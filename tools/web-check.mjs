@@ -13,7 +13,7 @@ import http from 'node:http';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { chromium } from 'playwright-core';
-import { ensureImported, godot } from './godot.mjs';
+import { ensureImported, godot, staticHandler } from './godot.mjs';
 
 const args = process.argv.slice(2);
 const flag = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args.splice(i, 2)[1] : d; };
@@ -40,13 +40,7 @@ const size = { data_mb: MB(sum('raw', f => f.endsWith('.pck'))), budget_mb: budg
   download_mb: MB(sum('raw')), download_gzip_mb: MB(sum('gzip')) };
 if (size.data_mb > budget) errors.push(`game data is ${size.data_mb} MB, over the ${budget} MB budget`);
 
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm', '.png': 'image/png', '.pck': 'application/octet-stream' };
-const server = http.createServer((q, s) => {
-  const file = path.join(web, path.normalize(decodeURIComponent(new URL(q.url, 'http://x').pathname)).replace(/^[/\\]+/, '') || 'index.html');
-  if (!file.startsWith(web) || !fs.existsSync(file)) { s.writeHead(404).end(); return; }
-  s.writeHead(200, { 'content-type': TYPES[path.extname(file)] ?? 'application/octet-stream' });
-  fs.createReadStream(file).pipe(s);
-}).listen(0, '127.0.0.1');
+const server = http.createServer(staticHandler(web)).listen(0, '127.0.0.1');
 await new Promise(r => server.once('listening', r));
 
 // software WebGL, so it runs with no GPU: the frame rate here means nothing, test that on a real phone

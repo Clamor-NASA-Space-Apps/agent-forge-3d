@@ -39,7 +39,7 @@ A factory where an AI agent builds 3D games in Godot without "seeing" 3D. Open `
    - `python3 ../../skills/godot-nodes-scenes/scripts/check_godot_project.py .` reports 0 errors: a hand-written `.tscn` breaks quietly (a wrong resource id, a parent path that moved), and this reads every scene without starting the engine.
    - `node ../../tools/web-check.mjs .` passes: the native checks are fast, but the web build is what ships.
    - Run the `code-review` skill at `medium`. Fix only real bugs and regressions in normal use, re-review at most once, and send everything else to `findings.md`, one line each.
-   - **The user plays the web build** (five minutes, on the weakest device it must run on) before the boxes are ticked: tests, bots and preset shots all passed a game that felt dead.
+   - **The user plays the web build** (five minutes, on the weakest device it must run on; `tools/serve-web.mjs` gives a phone its address) before the boxes are ticked: tests, bots and preset shots all passed a game that felt dead.
    - Tick the boxes, commit, push.
 8. **Lessons**, then the next section. See Self-improvement.
 
@@ -127,6 +127,7 @@ The factory gets better every time it hits an obstacle.
 | `tools/capture-view.mjs` | `node tools/capture-view.mjs <project> [outDir] [--views a,b\|none] [--advance ms] [--scale 0.5] [--scene res://x.tscn]`: screenshots per preset view + `state.json` + draw calls + `console.log`; exit 1 on errors |
 | `tools/feel-probe.mjs` | `node tools/feel-probe.mjs <reality.json> [project] [--film id,id]`: checks the sheet (sources, ranges, escapes), then plays each measured row with real input events and compares; a film is 8 frames of a run in one PNG. Exports `play` for project checks |
 | `tools/web-check.mjs` | `node tools/web-check.mjs <project> [outDir] [--budget-mb 15]`: web export, game data against the budget, download size as a host sends it, engine start time and console errors in a browser, `web.png` |
+| `tools/serve-web.mjs` | `node tools/serve-web.mjs <project> [--port 5188]`: serves the web build for play: `http://localhost` here, https on the network for phones |
 | `godot/preview/` | Style variants in the engine: token files, probe models in a row, a 1.8 m person, one swatch sphere per material role, lamps from `lighting.lamp`. Keys 1 to 9 switch variant; capture with `--views three,low` |
 | `tools/style-check.mjs` | `node tools/style-check.mjs DESIGN.md [model.glb ...]`: DESIGN.md lint + 3D keys + per-model roles, colours, triangles, height. Exit 1 on drift |
 | `tools/design-tokens.mjs` | `node tools/design-tokens.mjs DESIGN.md design.json`: resolved tokens for the engine |
@@ -149,7 +150,7 @@ The factory gets better every time it hits an obstacle.
 - Godot 4.7 cannot read a GLB with meshopt, quantized or Draco-compressed meshes ("required extension ... is not supported"), so `--compress false`; WebP textures load. Official and kit models often arrive Draco-compressed: run them through `gltf-transform optimize` first. Its defaults also merge things the game needs by name: `--join`/`--instance` fold same-material parts into one node and drop their names (pass `false` for models the game moves or hides part by part, or whose part names carry collision suffixes), `--palette` merges materials and loses role names (pass `false`).
 - The Compatibility renderer adds a light with shadows in sRGB space: one sun plus ambient came out 2.2 times too bright on flat ground. `apply_lighting()` corrects its sun; any other shadowed light needs its energy cut by eye, so keep to one or two. Sky-sourced ambient ignored `ambient_light_energy` there too, so the rig's ambient is a colour.
 - `--headless` draws nothing: pictures come from software OpenGL on a hidden display, where the frame rate means nothing. Frame rate is measured on the real device, in the web build.
-- A web build runs only on https or localhost. To test on a phone, serve it on the laptop and `adb reverse tcp:<port> tcp:<port>`, then open `localhost:<port>` on the phone. In a phone browser `OS.has_feature("mobile")` is false; ask for `web_android` or `web_ios`.
+- A web build runs only on https or localhost, so a phone cannot open it at the laptop's plain address. `node tools/serve-web.mjs <project>` prints an https address for phones on the same Wi-Fi (its certificate is self-made: Advanced, then Proceed) and sets `adb reverse` for one on USB. In a phone browser `OS.has_feature("mobile")` is false; ask for `web_android` or `web_ios`.
 - The engine is a 38 MB download before any game data (about 10 MB when the host compresses it), so host where files are served gzipped. The 15 MB budget is the game's own data (`.pck`).
 - A hand-written `project.godot` runs Godot Physics unless it names `physics/3d/physics_engine="Jolt Physics"`, the default of projects made in the editor. `new-project.mjs` writes it.
 - A script error repeats every frame and the game keeps running. The tools report each distinct line once and cap the run's frames; read the first error, the rest follow from it. A helper named `_get` or `_set` in a node script overrides the engine's own and fails to parse.
