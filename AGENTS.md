@@ -89,12 +89,12 @@ The factory gets better every time it hits an obstacle.
 ## Tools
 | Tool | Use |
 |---|---|
-| `forge/lib.py` | Blender helpers for recipes: `reset, mat, box, cyl, sphere, bevel, array, mirror, cut, smooth, finish`. Reads `FORGE_DESIGN` |
+| `forge/lib.py` | Blender helpers for recipes: `reset, mat, box, cyl, cone, sphere, bevel, array, mirror, cut, smooth, finish`. Reads `FORGE_DESIGN` |
 | `forge/lineup.py` | `blender -b -P forge/lineup.py`: every GLB in `out/` beside a 1.8 m person, one `previews/lineup.png`. `FORGE_PROBES=1` builds `forge/probes/` first |
 | `tools/style-check.mjs` | `node tools/style-check.mjs DESIGN.md [model.glb ...]`: DESIGN.md lint + 3D keys + per-model roles, colours, triangles, height. Exit 1 on drift |
 | `tools/design-tokens.mjs` | `node tools/design-tokens.mjs DESIGN.md out.json`: resolved tokens for the browser |
 | `runtime/house-style.js` | `applyHouseStyle(root, design)`, `applyLighting(scene, renderer, design)` |
-| `tools/capture-view.mjs` | `node tools/capture-view.mjs <url> [outDir] [--views a,b] [--advance ms] [--scale 0.5]`: screenshots per preset view + `state.json` + `console.log`; exit 1 on errors |
+| `tools/capture-view.mjs` | `node tools/capture-view.mjs <url> [outDir] [--views a,b] [--advance ms] [--scale 0.5] [--eval js]`: screenshots per preset view + `state.json` + `console.log`; exit 1 on errors |
 | `tools/html-to-png.mjs` | `node tools/html-to-png.mjs in.html out.png [--selector "#card"] [--scale 2]`: a local HTML/SVG chart, diagram or slide to a cropped PNG |
 
 **Browser:** `BROWSER_PATH` env, default `/usr/bin/brave-browser`. Software WebGL flags are on, so it works headless.
@@ -117,6 +117,8 @@ The factory gets better every time it hits an obstacle.
 - Blender 5.2: `shade_smooth_by_angle` + the `WEIGHTED_NORMAL` modifier replace the old auto-smooth. Principled BSDF emission inputs are `Emission Color` / `Emission Strength`.
 - Blender's `matrix_world` is stale after a location change until `view_layer.update()`; `_bounds()` calls it, so framing is right.
 - In three.js a metal with no `scene.environment` renders black. `applyLighting()` sets a sky-coloured one.
+- capture-view waits for `window.capture` or `window.render_game_to_text`: `networkidle` fires while a module is still parsing models, and the shot came out black about 1 in 5 runs. Define the hooks last.
+- Blender `-b -P` exits 0 on a Python error unless you add `--python-exit-code 1`.
 - Some distro Blender builds log an OpenColorIO version error. Renders still work, in raw colour: judge shape in previews, final colour in three.js.
 
 ## Checks before committing here

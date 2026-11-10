@@ -106,6 +106,14 @@ def cyl(name, r=0.5, h=1, loc=(0, 0, 0), mat=None, verts=32, rot=(0, 0, 0)):
     return _place(bpy.context.object, name, loc, mat)
 
 
+def cone(name, r=0.5, h=1, loc=(0, 0, 0), mat=None, verts=32, rot=(0, 0, 0)):
+    """A pointed cone standing on its base at loc (pines, flame shards, spikes)."""
+    bpy.ops.mesh.primitive_cone_add(radius1=r, radius2=0, depth=h, vertices=verts, rotation=rot)
+    o = _place(bpy.context.object, name, loc, mat)
+    o.location.z += h / 2
+    return o
+
+
 def sphere(name, r=0.5, loc=(0, 0, 0), mat=None, segs=32):
     bpy.ops.mesh.primitive_uv_sphere_add(radius=r, segments=segs, ring_count=segs // 2)
     return _place(bpy.context.object, name, loc, mat)

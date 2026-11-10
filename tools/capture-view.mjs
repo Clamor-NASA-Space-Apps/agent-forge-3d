@@ -1,6 +1,7 @@
 // Preset-camera screenshots + state dump for agent self-checks.
 //
-//   node tools/capture-view.mjs <url> [outDir] [--views a,b,c] [--advance ms] [--scale 0.5]
+//   node tools/capture-view.mjs <url> [outDir] [--views a,b,c] [--advance ms] [--scale 0.5] [--eval js]
+// --eval runs a script in the page before --advance (play a scripted round, click through a menu).
 //
 // The page under test may expose (develop-web-game pattern):
 //   window.capture.setView(name)   -> moves the camera to a named preset (await-able)
@@ -16,8 +17,9 @@ const flag = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args.splice(
 const views = flag('--views', 'default').split(',');
 const advance = Number(flag('--advance', 0));
 const scale = Number(flag('--scale', 0.5));
+const script = flag('--eval', '');
 const [url, outDir = 'captures'] = args;
-if (!url) { console.error('usage: capture-view.mjs <url> [outDir] [--views a,b] [--advance ms] [--scale 0.5]'); process.exit(2); }
+if (!url) { console.error('usage: capture-view.mjs <url> [outDir] [--views a,b] [--advance ms] [--scale 0.5] [--eval js]'); process.exit(2); }
 
 const BROWSER = process.env.BROWSER_PATH || '/usr/bin/brave-browser';
 fs.mkdirSync(outDir, { recursive: true });
@@ -33,8 +35,13 @@ page.on('pageerror', e => errors.push(String(e)));
 page.on('response', r => { if (r.status() >= 400 && !r.url().endsWith('/favicon.ico')) errors.push(`HTTP ${r.status()} ${r.url()}`); });
 
 await page.goto(url, { waitUntil: 'networkidle' });
+// networkidle can fire while the page's module is still parsing models, before the hooks exist;
+// a screenshot then catches an empty black canvas (about 1 in 5 runs under SwiftShader).
+await page.waitForFunction(() => window.capture || window.render_game_to_text, null, { timeout: 20000 })
+  .catch(() => errors.push('page never defined window.capture or window.render_game_to_text'));
 const frames = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 await frames();
+if (script) await page.evaluate(script).catch(e => errors.push(`--eval failed: ${e.message.split('\n')[0]}`));
 if (advance) await page.evaluate(ms => window.advanceTime?.(ms), advance);
 
 for (const v of views) {
