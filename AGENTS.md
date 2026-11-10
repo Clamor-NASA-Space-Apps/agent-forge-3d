@@ -22,7 +22,9 @@ A factory where an AI agent builds 3D browser games without "seeing" 3D. Open `c
    - Every section ends with the same three boxes: `checks pass`, `/code-review medium`, `lessons`.
    - Write `CONTRACTS.md` first: state shape, event schema, prefab registry, test hooks. Lanes read only `CONTRACTS.md`, `DESIGN.md` and their own folder.
    - Pin what parallel lanes otherwise guess differently: axes and yaw convention, `[min, max]` box order, one collider format with one owner, which inits are async, whether text hooks return objects, which tags are floors vs walls.
-5. **Build a section in bulk.** Parallel agents in git worktrees for independent lanes. You merge.
+5. **Build a section in bulk.** Parallel agents for independent lanes (same checkout, disjoint folders; see Gotchas). You merge.
+   From the second section on, resume each lane agent with SendMessage instead of a fresh agent: it keeps its code in context and the brief halves.
+   Run the bots early: a 100% win rate is a design bug that no screenshot shows.
 6. **Gate the section.**
    - Re-run every agent's check yourself (`node --test`, capture-view). An agent's report is a lead, not proof. Read its diff before merging.
    - `node ../../tools/style-check.mjs DESIGN.md public/models/*.glb` passes (from the project folder), and one fresh lineup render is compared with the approved variant.
@@ -135,6 +137,8 @@ The factory gets better every time it hits an obstacle.
 - A project importing `runtime/house-style.js` through `../../` needs Vite `server.fs.allow: ['../..']` and `resolve.dedupe: ['three']`, or it loads a second three from the factory's node_modules.
 - A review finding can be wrong: run the check it names before merging the fix. A "UV 1.0 samples column 0" fix would have broken REPEAT sampling, which is the glTF default and what the GPU does.
 - `gltf-transform optimize` (meshopt) quantizes meshes and folds an offset into each mesh node, so a part's origin leaves its joint. Animated parts need an empty joint node holding a `<part>_mesh` child, plus `--flatten false --join false --instance false`; code rotates the joint, never `*_mesh`.
+- Animated rigs cost one draw call per joint part per material, and again in the shadow pass: six NPCs took a 19-call world to 157. Turn off `castShadow` on NPCs (keep the hero's) and join static parts per role in the recipe.
+- In a shared checkout a lane's capture can crash on another lane's half-written data file (a missing tuning key). Re-run once before treating it as a bug.
 - Some distro Blender builds log an OpenColorIO version error. Renders still work, in raw colour: judge shape in previews, final colour in three.js.
 
 ## Checks before committing here
