@@ -22,6 +22,7 @@ A street with props and one bus is a diorama. Life means things that move on the
 - **No foot sliding:** set the clip's playback rate to movement speed divided by the speed the clip was authored for, and switch clips by the sheet's speed bands. A procedural gait whose phase advances with distance walked never slides.
 - **Feet on the floor they walk on.** A sim usually gives NPCs y 0. Put each one on the floor under it, using a downward ray, eased over curbs. Otherwise every walker on a raised pavement wades in it.
 - **NPCs never pass through the hero or each other.** In the rules, each walker looks a little ahead. If the hero is in the way, a calm walker steps around it and a hostile one shoves it aside. In physics, every walker and animal gets a kinematic capsule, so the hero can't walk through them either. Check both: a walker meeting a hero sitting on its path never comes closer than its radius.
+- **Touching is physical.** When the rules say an NPC touches the hero (pets it, feeds it, grabs it), the NPC first goes to it, faces it and poses to its height: a person kneels or squats to a small animal, a hand lands on its back, the animal leans in. The rules hold both still for the contact; either one leaving ends it. Report `touchGap` (the distance from the hand to the body) in the text hook while it lasts. An arm waved in the air a metre away is not a touch.
 - **Life beyond walking:** stops (about 1 in 4 walkers pause 2 to 6 s at a shop window or a phone), heads that turn toward the hero when it is near, and small variations in tempo and arm swing.
 
 ## Draw-call budget (keep < 150 total)
@@ -42,6 +43,7 @@ Measure `renderer.info.render.calls` with every NPC on screen at High (a road vi
 
 ## Checks
 - A sim test per pair row: the hero's escape works through the ability model, and standing still does not.
+- While any touch lasts, `touchGap` is under a few centimetres, and one capture shows it.
 - A sim test per NPC kind: it does its thing (a car keeps its gap, a kid chases and gives up, a grumpy walker kicks within range with a cooldown).
 - A road capture at High with draw calls in `state.json` < 150.
 - More than 3 moving things visible from the default camera on the main street.

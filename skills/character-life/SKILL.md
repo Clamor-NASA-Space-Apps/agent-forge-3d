@@ -9,7 +9,7 @@ A hero that only walks, runs and jumps reads as a robot. Life comes from layers:
 
 ## 1. The rig the forge must deliver
 Ask the asset lane for these joints up front (empty joint nodes with pivots at the joint; see the meshopt gotcha in AGENTS.md):
-- `spine` (front half bends), `hips` (rear half bends: a gallop needs both), `neck`, `head`, `ear_l` `ear_r`, `lid_l` `lid_r` (eyelids, a cap that rotates down to close), `tail` + `tail_tip`.
+- `spine` (front half bends), `hips` (rear half bends: a gallop needs both), `neck`, `head`, `ear_l` `ear_r`, `lid_l` `lid_r` (eyelids, a cap that rotates down to close), and the tail as a chain of at least four segments (`tail`, `tail_2`, `tail_3`, `tail_tip`). Anything long and bendy (a tail, a long neck, a trunk, a rope) needs a chain: two stiff links read as a stick. Its rest pose is the animal's neutral carriage, not its most expressive one.
 - Legs in two segments: `leg_xx` at the hip or shoulder, `leg_xx_knee` below it. One stiff segment cannot lift a paw or plant a foot.
 - Adult proportions unless the story says young: a head about 1/4 of body length (a kitten is nearer 1/2). Check against a 1.8 m person in the lineup.
 - Paws exactly on y = 0 at the rest pose.
@@ -36,7 +36,7 @@ The controller (see `skills/rapier-character`) produces a speed; the animation r
 1. **Pose by state:** idle, crouch, jump (stretched), fall, land, climb, eat, groom, sit. Blend toward the target pose with a spring, never snap. **Build poses from joints** (hips down and front legs straight for a sit), never by tilting the whole body: a tilted rig sinks one end into the floor and lifts the other off it.
 2. **Gait** (section 2). In swing, the knee bends and the paw lifts; in stance, the paw stays planted.
 3. **Foot planting:** after posing, ray-cast down under each paw and bend the hip and knee so the paw sits on the floor. The body height follows the average. A paw with no floor in reach is pulled in under the body, never left hanging: on a rail or a narrow ledge the hero lines up with it and places its feet in line, and at rest it takes a perch pose (feet tucked under). Report `feetBelowFloor` and `feetAboveFloor` (max over paws) for the checks.
-4. **Springs** (stiffness about 100 to 150, tune by eye): tail as a two-link chain, ears, head look-at. Springs give overshoot and settle; lerps look mechanical.
+4. **Springs** (stiffness about 100 to 150, tune by eye): the tail as a chain where each segment follows the one before it with a little lag (so it curves in a turn, streams out in a run and settles after a stop), ears, head look-at. Springs give overshoot and settle; lerps look mechanical.
 5. **Look-at:** the head turns toward the nearest thing worth noticing (a threat first, then food or a person), limited to about ±70 degrees, through a spring.
 6. **Breathing:** a small chest or body scale at about 0.4 Hz at rest, faster when scared or after running.
 7. **Blinks:** uneven, not a fixed random interval: 2 to 6 s apart, sometimes a double blink, a slow blink when content.
@@ -44,10 +44,11 @@ The controller (see `skills/rapier-character`) produces a speed; the animation r
 9. **Anticipation and landing:** a small crouch before a jump, a squash on landing pivoted at the feet, subtle (5 to 10%).
 
 ## 4. Moods (the sim decides the mood; the player only shows it)
+Fill this table from a source on the species' body language (the sheet's signal question, `skills/reality-sheet`), and keep each posture for its meaning. The neutral row is what the player sees most of the time; a signal shown all the time stops being one. The rows below are a cat's, as an example.
 | Mood | Body | Ears | Tail | Eyes | Other |
 |---|---|---|---|---|---|
-| calm | level | up, small twitches | slow sway | normal blinks | breathing at rest |
-| happy | level, slight bounce | forward | up, tip hooked | slow blinks | purr sound |
+| calm (neutral) | level | up, small twitches | level with the back or a little below, a soft curve, the tip trailing each step | normal blinks | breathing at rest |
+| greeting (petted, fed by someone) | level, leans in | forward | straight up, tip hooked | slow blinks | purr sound; only while the cause lasts |
 | hungry | head low | slightly back | low sway | normal | slower cadence, looks toward food |
 | scared | low, crouched | flat back | puffed, low | wide, no blinks | fast breathing, quick turns |
 | cold | hunched | back | wrapped low | half closed | shiver |
