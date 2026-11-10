@@ -1,6 +1,6 @@
 ---
 name: world-collision
-description: "Make every visible solid in a three.js world collide exactly where it is drawn: physics colliders built from the render meshes, logic tags kept separate, hollow models with real thickness, and automated traversal sweeps (walk into every prop, step onto every curb). Use when a hero walks through objects, gets stuck on curbs or pavement edges, when objects look see-through from inside, or when adding physics to a world authored as data."
+description: "Make every visible solid in a three.js world collide exactly where it is drawn: physics colliders built from the render meshes, logic tags kept separate, hollow models with real thickness, and automated sweeps that use the hero's drawn body (walk into every prop, cross every curb, reach every top). Use when the plan has solids to touch: a world of props, buildings, curbs or containers, before the world lane is briefed."
 ---
 
 # World collision
@@ -27,10 +27,11 @@ Rule: **what you see is what you hit.**
 7. **One debug view:** draw the colliders as a wireframe over the scene (`?colliders=1`). One look finds a prop with no collision, or a collider with no prop.
 
 ## Automated checks (run every gate)
-- **Walk-into-every-prop sweep:** for each static prefab, put the hero 2 m away, walk straight at its centre for 3 s, and assert it stops outside the prop's drawn bounds. Skip props tagged as walk-through, such as a doormat.
+- **Walk-into-every-prop sweep:** for each static prefab, put the hero 2 m away, walk straight at its centre for 3 s, and assert that no part of the hero's **drawn bounds** (nose to tail, not its collider) is inside the prop's triangles. A test box the size of the collider only checks the collider against itself. Skip props tagged as walk-through, such as a doormat.
 - **Curb sweep:** sample N points along every edge between two walkable surfaces. Walk across each edge both ways without jumping and assert the hero reaches the other side. Report the points that fail as coordinates.
 - **Crawl-gap check:** the hero passes crouched, is blocked standing, and a larger NPC cannot path into the gap.
-- **Target sweep:** from each free side of every climbable thing, a jump target is offered and one press lands on its drawn top.
+- **Target sweep:** from each free side of every climbable thing within the hero's tiers, a jump target is offered and one press lands on its drawn top with every foot supported.
+- **Reach check:** every standable top is reachable from spawn by moves on the sheet, or listed with a reason (`skills/contextual-traversal`).
 - **Inside view:** one capture from inside each hollow model. No see-through walls.
 
 ## Sources

@@ -6,7 +6,8 @@
   "description": "Generic tooling for AI-agent three.js game builds: a headless Blender asset forge, a DESIGN.md design language with a style checker, and a preset-camera screenshot checker.",
   "license": "Apache-2.0",
   "scripts": {
-    "capture": "node tools/capture-view.mjs"
+    "capture": "node tools/capture-view.mjs",
+    "feel": "node tools/feel-probe.mjs"
   },
   "devDependencies": {
     "@gltf-transform/core": "^4.5.1",

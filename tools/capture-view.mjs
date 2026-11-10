@@ -7,7 +7,12 @@
 //   window.capture.setView(name)   -> moves the camera to a named preset (await-able)
 //   window.advanceTime(ms)         -> steps the game deterministically
 //   window.render_game_to_text()   -> JSON-able snapshot of game state
-// Writes <outDir>/<view>.png, state.json, console.log. Exit 1 on page errors or console errors.
+// Writes <outDir>/<view>.png, state.json, console.log. Exit 1 on page errors, console errors or HTTP >= 400.
+// Real time drives play, but the first advanceTime call should restart from the seed and stop real-time
+// stepping, or load time leaks into state.json. Define the hooks last: this waits for them, and a shot
+// taken while a module still parses models comes out black.
+// It calls setView itself, which hides a game that never sets its own start camera: check one shot with
+// --eval "window.capture = undefined".
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';

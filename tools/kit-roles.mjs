@@ -5,6 +5,7 @@
 // This reads the atlas colour under each triangle, maps it to a role through the `#rrggbb: role`
 // entries of DESIGN.md `kit`, and writes one primitive per role with DESIGN.md's material values.
 //   --palette   print every atlas colour the inputs use (triangle count, current role) and exit
+//   --scale     Kenney city units are road tiles: 8 gives an 8 m road, a 5.4 m lamp, a 6.7 m house
 //   --prefix    prepend a class to output names (building_, prop_ ...) so style-check budgets apply
 //   --swap      repaint this run's models: role a becomes b (one kit swatch, a car's body, in several paints)
 // Skinned models keep JOINTS_0/WEIGHTS_0 (every attribute but TEXCOORD), the skin and the clips;

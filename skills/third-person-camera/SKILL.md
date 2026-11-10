@@ -1,6 +1,6 @@
 ---
 name: third-person-camera
-description: "A third-person follow camera for a three.js game that never ends up inside geometry: sphere-cast collision against the same colliders as the hero, whisker rays, tight-space framing (under cars, in tunnels), fading the hero when the camera is close, damping and hysteresis. Use when building a follow camera, or when a user reports see-through objects, the camera inside walls or cars, the hero filling the screen, or jittery zoom."
+description: "A third-person follow camera for a three.js game that never ends up inside geometry: sphere-cast collision against the same colliders as the hero, thin obstacles ignored, tight-space and enclosed-space framing (under cars, inside containers), lifting over a wall before fading the hero, damping and hysteresis. Use when the plan has a follow camera, before the player lane is briefed."
 ---
 
 # Third-person camera
@@ -17,12 +17,16 @@ description: "A third-person follow camera for a three.js game that never ends u
 4. **Thin obstacles never move the camera.** Poles, trunks, signs, posts, anything under about 0.6 m across: leave them out of the boom cast (decide once from the collider bounds) and let them draw in front of the hero, the way every third-person game does. Pulling in for a lamp post shoves the lens into the hero's back. Still push the camera out if it ends up inside one.
 5. **Whiskers:** a few short rays fanned left and right of the boom detect a wall before it blocks, so the camera swings away early. Player input wins over avoidance when they disagree.
 6. **Tight spaces** (under a car, in a pipe, under a bench): when the space over the hero is low (a short upward probe), lower the camera height and pitch, and shorten the distance. That frames the hero from behind under the obstacle, so the camera never sits inside it.
-7. **Fade the hero only when the camera is really close.** From about 0.5 m down to 0.3 m, fade the hero's materials out. In three.js set `material.alphaHash = true` and lower `opacity`: you get a dither with no sorting problems, and no extra draw calls. Hide it fully below the end distance. Never show the inside of the hero's head. Above the start distance turn `alphaHash` off (not just opacity 1): a dither at 0.99 reads as grain all over the hero. Switch it only when crossing the threshold (`needsUpdate` recompiles the shader).
-8. **Derive distance from pitch:** closer when looking up, a little farther when looking down. Keep the hero's size on screen steady.
-9. **Damping:** a critically damped spring on the follow target; smooth vertical movement more than horizontal so jumps don't jolt the view.
-10. **Store yaw, pitch and distance,** never a world position, and rebuild the camera from them every frame.
+7. **Enclosed spaces** (inside a bin, a box, a booth the hero climbed into): the boom ignores the shell the hero is inside, and the camera stays outside and above its opening, looking in. A camera dragged inside shows a wall of the hero's back and nothing else.
+8. **A wall behind the hero lifts the camera before it squeezes it.** When the safe distance falls toward the fade range, raise the pitch and orbit up over the hero, so the shot becomes a look down instead of a look through its head. Fading is the last resort.
+9. **Fade the hero only when the camera is really close.** From about 0.5 m down to 0.3 m, fade the hero's materials out. In three.js set `material.alphaHash = true` and lower `opacity`: you get a dither with no sorting problems, and no extra draw calls. Hide it fully below the end distance. Never show the inside of the hero's head. Above the start distance turn `alphaHash` off (not just opacity 1): a dither at 0.99 reads as grain all over the hero. Switch it only when crossing the threshold (`needsUpdate` recompiles the shader).
+10. **Derive distance from pitch:** closer when looking up, a little farther when looking down. Keep the hero's size on screen steady.
+11. **Damping:** a critically damped spring on the follow target; smooth vertical movement more than horizontal so jumps don't jolt the view.
+12. **Store yaw, pitch and distance,** never a world position, and rebuild the camera from them every frame.
 
 ## Checks
+The text hook reports `camInside` (is the lens inside any static solid) and `heroScreen` (the hero's height as a share of the frame). Put a band for `heroScreen` on the sheet and let `npm run feel` hold it.
+- `camInside` is false and `heroScreen` is in its band: in the open, under the lowest crawl gap, inside every kind of container, and pressed into a corner with the camera turned toward the wall.
 - A capture with the hero under the lowest crawl gap: the frame shows the obstacle's underside, not see-through geometry.
 - The hero pressed against a wall with the camera turned toward it: the camera stays outside, and the hero fades when the camera is close.
 - The hero 1 m in front of a lamp post with the camera behind it: the camera distance does not change, and the hero is not dithered.
