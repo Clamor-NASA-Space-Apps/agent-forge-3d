@@ -9,7 +9,7 @@
 //
 // Sheet: { gravity?, probe?: { pos: 'player.pos', scene?, tol? }, rows: [...], pairs: [...] }
 // row:   { id, real: [lo, hi], value, unit, source, why?, limit?: 'max' | 'min', tol?,
-//          measure?, at?: [x, y, z], yaw?, hold?: [inputs], tap?: [inputs], then?: [inputs], ms?, above?, path?, of?, view?, scene?, filmMs? }
+//          measure?, at?: [x, y, z], yaw?, hold?: [inputs], tap?: [inputs], then?: [inputs], ms?, above?, path?, of?, view?, scene?, filmMs?, filmSeg? }
 // pair:  { id, chaser, prey, escape: 'outrun' | 'refuge', refuge?, lead?, burst? }  (row ids; refuge and lead in metres)
 // measure: speed (steady m/s), ramp (s to 90% of steady), stop (m after release), turn (m carried along the old
 //          heading after switching to `then`), jump (apex m, or of: 'length'), burst (s at or above `above`),
@@ -56,7 +56,8 @@ export function checkSheet(sheet) {
 // Plays runs in one engine start and returns { [id]: { samples: [{ t, seg, pos, v }], frames: [png paths] } }.
 // Game checks share this instead of their own launch code.
 // run: { id, at?, yaw?, segs: [{ hold: [inputs], tap: [inputs], ms }], pos?: 'player.pos', watch?: path,
-//        shots?: { n, ms, view, start? } }  (n pictures over the last ms of the first segment, or its first ms with start;
+//        shots?: { n, ms, view, start?, seg? } }  (n pictures over the last ms of segment `seg` (the first), or its first ms
+//        with start; the HUD is hidden while a run is filmed;
 //        after a run with a view the game gets set_view("default"))
 export function play(project, runs, { out = 'captures', scene, width = 480, height = 270 } = {}) {
   const { result, errors } = runJob(project, { out, runs }, { scene, width, height });
@@ -95,7 +96,7 @@ function runOf(row, probe, film) {
   if (row.measure === 'stop') segs.push({ hold: [], ms: 3000 });
   if (row.measure === 'turn') segs.push({ hold: row.then ?? [], ms: 1500 });
   return { id: row.id, at: row.at, yaw: row.yaw, segs, pos: probe.pos ?? 'player.pos', watch: row.path,
-    shots: film ? { n: 8, ms: row.filmMs ?? (row.measure === 'jump' ? segs[0].ms : 400), view: row.view, start: row.measure === 'jump' } : undefined };
+    shots: film ? { n: 8, ms: row.filmMs ?? (row.measure === 'jump' ? segs[0].ms : 400), view: row.view, start: row.measure === 'jump', seg: row.filmSeg } : undefined };
 }
 
 function measure(row, { samples, step }) {

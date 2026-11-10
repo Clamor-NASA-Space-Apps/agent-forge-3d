@@ -99,6 +99,10 @@ func _play(r: Dictionary, out: String, step_ms: float, errors: Array) -> Diction
 	var shots: Dictionary = r.get("shots", {})
 	if shots.has("view") and hooks.has_method("set_view"):
 		hooks.set_view(shots.view)
+	# a film is about the body: the HUD's buttons in every frame hide it
+	var huds := get_tree().root.find_children("*", "CanvasLayer", true, false).filter(func(c: CanvasLayer) -> bool: return shots.has("n") and c.visible)
+	for c: CanvasLayer in huds:
+		c.hide()
 	var sample := func(seg: int) -> void:
 		await get_tree().physics_frame
 		var s: Dictionary = hooks.render_game_to_text()
@@ -125,7 +129,7 @@ func _play(r: Dictionary, out: String, step_ms: float, errors: Array) -> Diction
 			for k: String in taps:
 				_key(k, false)
 			steps -= 1
-		if si == 0 and shots.has("n"):
+		if si == int(shots.get("seg", 0)) and shots.has("n"):
 			var each := maxi(1, roundi(minf(float(shots.ms), float(seg.ms)) / step_ms / int(shots.n)))
 			# a gait is filmed once it is steady, at the end; a jump from its first step, or the film shows the landing
 			var lead := 0 if shots.get("start", false) else maxi(0, steps - each * int(shots.n))
@@ -144,6 +148,8 @@ func _play(r: Dictionary, out: String, step_ms: float, errors: Array) -> Diction
 		_key(k, false)
 	if shots.has("view") and hooks.has_method("set_view"):
 		hooks.set_view("default")  # or every later row is measured through the film's camera
+	for c: CanvasLayer in huds:
+		c.show()
 	return {"samples": samples, "frames": frames}
 
 
