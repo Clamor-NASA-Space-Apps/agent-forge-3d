@@ -127,7 +127,9 @@ func _play(r: Dictionary, out: String, step_ms: float, errors: Array) -> Diction
 			steps -= 1
 		if si == 0 and shots.has("n"):
 			var each := maxi(1, roundi(minf(float(shots.ms), float(seg.ms)) / step_ms / int(shots.n)))
-			for i in maxi(0, steps - each * int(shots.n)):
+			# a gait is filmed once it is steady, at the end; a jump from its first step, or the film shows the landing
+			var lead := 0 if shots.get("start", false) else maxi(0, steps - each * int(shots.n))
+			for i in lead:
 				await sample.call(si)
 			for i in int(shots.n):
 				for j in each:
@@ -135,11 +137,13 @@ func _play(r: Dictionary, out: String, step_ms: float, errors: Array) -> Diction
 				var file := out.path_join("%s_%d.png" % [r.id, i])
 				if await _shot(file, errors):
 					frames.append(file)
-			steps = 0
+			steps = maxi(0, steps - lead - each * int(shots.n))
 		for i in steps:
 			await sample.call(si)
 	for k: String in held.keys():
 		_key(k, false)
+	if shots.has("view") and hooks.has_method("set_view"):
+		hooks.set_view("default")  # or every later row is measured through the film's camera
 	return {"samples": samples, "frames": frames}
 
 

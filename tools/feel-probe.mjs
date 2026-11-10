@@ -16,7 +16,7 @@
 //          state (largest value of `path` in render_game_to_text() over the run).
 // inputs: an input action name ("move_forward"), else a Godot key name ("W", "Shift", "Space").
 // Game hooks (godot/addons/forge/forge.gd): render_game_to_text(), place(pos, yaw_deg) for rows with `at`,
-// set_view(name) for films. `scene` runs a fixture scene (res://...) in place of the main one.
+// set_view(name) for films ("default" is the game's own play view; a jump is filmed from its first step). `scene` runs a fixture scene (res://...) in place of the main one.
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -56,7 +56,8 @@ export function checkSheet(sheet) {
 // Plays runs in one engine start and returns { [id]: { samples: [{ t, seg, pos, v }], frames: [png paths] } }.
 // Game checks share this instead of their own launch code.
 // run: { id, at?, yaw?, segs: [{ hold: [inputs], tap: [inputs], ms }], pos?: 'player.pos', watch?: path,
-//        shots?: { n, ms, view } }  (shots takes n pictures over the last ms of the first segment)
+//        shots?: { n, ms, view, start? } }  (n pictures over the last ms of the first segment, or its first ms with start;
+//        after a run with a view the game gets set_view("default"))
 export function play(project, runs, { out = 'captures', scene, width = 480, height = 270 } = {}) {
   const { result, errors } = runJob(project, { out, runs }, { scene, width, height });
   if (errors.length) throw new Error(errors.join('; '));
@@ -94,7 +95,7 @@ function runOf(row, probe, film) {
   if (row.measure === 'stop') segs.push({ hold: [], ms: 3000 });
   if (row.measure === 'turn') segs.push({ hold: row.then ?? [], ms: 1500 });
   return { id: row.id, at: row.at, yaw: row.yaw, segs, pos: probe.pos ?? 'player.pos', watch: row.path,
-    shots: film ? { n: 8, ms: row.filmMs ?? 400, view: row.view } : undefined };
+    shots: film ? { n: 8, ms: row.filmMs ?? (row.measure === 'jump' ? segs[0].ms : 400), view: row.view, start: row.measure === 'jump' } : undefined };
 }
 
 function measure(row, { samples, step }) {
