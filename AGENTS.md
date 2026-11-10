@@ -21,6 +21,7 @@ A factory where an AI agent builds 3D browser games without "seeing" 3D. Open `c
    - Sections of 2–4 hours of work, every item a `[ ]` box.
    - Every section ends with the same three boxes: `checks pass`, `/code-review medium`, `lessons`.
    - Write `CONTRACTS.md` first: state shape, event schema, prefab registry, test hooks. Lanes read only `CONTRACTS.md`, `DESIGN.md` and their own folder.
+   - Pin what parallel lanes otherwise guess differently: axes and yaw convention, `[min, max]` box order, one collider format with one owner, which inits are async, whether text hooks return objects, which tags are floors vs walls.
 5. **Build a section in bulk.** Parallel agents in git worktrees for independent lanes. You merge.
 6. **Gate the section.**
    - Re-run every agent's check yourself (`node --test`, capture-view). An agent's report is a lead, not proof. Read its diff before merging.
@@ -34,7 +35,7 @@ A factory where an AI agent builds 3D browser games without "seeing" 3D. Open `c
 - **Recipes ask for roles:** `mat("body")`. A raw colour or an unknown role raises. Seven core roles always exist: `body, trim, accent, metal, glass, rock, light`.
 - **Every model in the browser goes through `applyHouseStyle()`, every scene through `applyLighting()`** (`runtime/house-style.js`). An unmapped kit material logs a warning; fix it with a `kit` entry, never in code.
 - **Model file names start with their class** (`building_*`, `vehicle_*`, `rock_*`); anything else counts as `prop`. That picks the budget `style-check` applies.
-- **Optional themes** (a settings switch): `DESIGN.<theme>.md` beside DESIGN.md, the only other files with colour values. Same roles, same `geometry` (models are shared), only colours and light differ; style-check every file. `shading: flat` reaches kit models through `applyHouseStyle()`.
+- **Optional themes** (a settings switch): `DESIGN.<theme>.md` beside DESIGN.md, the only other files with colour values. Same roles, same `geometry` (models are shared), only colours and light differ; style-check each theme file alone (GLBs carry DESIGN.md colours and are checked against DESIGN.md only). `shading: flat` reaches kit models through `applyHouseStyle()`.
 - **Changing the look** is a DESIGN.md edit the user approves, shown with `npx design.md diff old.md new.md`. Never in code, never silently.
 
 ## Saving tokens
@@ -133,6 +134,7 @@ The factory gets better every time it hits an obstacle.
 - Kenney 2.x kits paint every model from one `colormap` atlas (one material, gradient swatches), so `kit` name patterns paint a whole house one role: run `tools/kit-roles.mjs` with `#hex` anchors. Kenney city units are road tiles: `--scale 8` gives an 8 m road, 5.4 m lamp, 6.7 m house.
 - A project importing `runtime/house-style.js` through `../../` needs Vite `server.fs.allow: ['../..']` and `resolve.dedupe: ['three']`, or it loads a second three from the factory's node_modules.
 - A review finding can be wrong: run the check it names before merging the fix. A "UV 1.0 samples column 0" fix would have broken REPEAT sampling, which is the glTF default and what the GPU does.
+- `gltf-transform optimize` (meshopt) quantizes meshes and folds an offset into each mesh node, so a part's origin leaves its joint. Animated parts need an empty joint node holding a `<part>_mesh` child, plus `--flatten false --join false --instance false`; code rotates the joint, never `*_mesh`.
 - Some distro Blender builds log an OpenColorIO version error. Renders still work, in raw colour: judge shape in previews, final colour in three.js.
 
 ## Checks before committing here

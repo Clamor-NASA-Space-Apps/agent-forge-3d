@@ -97,7 +97,7 @@ def box(name, size=(1, 1, 1), loc=(0, 0, 0), mat=None):
     bpy.ops.mesh.primitive_cube_add(size=1)
     o = bpy.context.object
     o.scale = size
-    bpy.ops.object.transform_apply(scale=True)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)  # location defaults to True and would bake the 3D cursor in
     return _place(o, name, loc, mat)
 
 
