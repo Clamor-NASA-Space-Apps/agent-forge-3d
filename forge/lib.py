@@ -192,7 +192,8 @@ def ground_origin():
 def export_glb(name):
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, name + ".glb")
-    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, use_selection=False)
+    # extras carry a part's custom properties (tags) into the game, where they arrive as get_meta("extras")
+    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_apply=True, use_selection=False, export_extras=True)
     return path
 
 
