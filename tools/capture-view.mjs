@@ -39,6 +39,8 @@ page.on('console', m => { logs.push(`[${m.type()}] ${m.text()}`); if (m.type() =
 page.on('pageerror', e => errors.push(String(e)));
 page.on('response', r => { if (r.status() >= 400 && !r.url().endsWith('/favicon.ico')) errors.push(`HTTP ${r.status()} ${r.url()}`); });
 
+// hold the dev server's hot-reload socket silent, so another lane saving a file cannot restart the page mid-capture
+await page.routeWebSocket(/.*/, () => {});
 await page.goto(url, { waitUntil: 'networkidle' });
 // networkidle can fire while the page's module is still parsing models, before the hooks exist;
 // a screenshot then catches an empty black canvas (about 1 in 5 runs under SwiftShader).

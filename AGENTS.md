@@ -141,7 +141,7 @@ The factory gets better every time it hits an obstacle.
 - A project importing `runtime/house-style.js` through `../../` needs Vite `server.fs.allow: ['../..']` and `resolve.dedupe: ['three']`, or it loads a second three from the factory's node_modules.
 - A review finding can be wrong: run the check it names before merging the fix. A "UV 1.0 samples column 0" fix would have broken REPEAT sampling, which is the glTF default and what the GPU does.
 - `gltf-transform optimize` (meshopt) quantizes meshes and folds an offset into each mesh node, so a part's origin leaves its joint. Animated parts need an empty joint node holding a `<part>_mesh` child, plus `--flatten false --join false --instance false`; code rotates the joint, never `*_mesh`.
-- In a shared checkout a lane's capture can crash on another lane's half-written data file (a missing tuning key). Re-run once before treating it as a bug. A save by another lane also makes Vite reload the page mid-check ("Execution context was destroyed").
+- In a shared checkout a lane's capture can crash on another lane's half-written data file (a missing tuning key). Re-run once before treating it as a bug. A save by another lane used to make Vite reload the page mid-check; `capture-view` and `feel-probe`'s `open()` now hold the reload socket silent, so project checks should launch through `open()`.
 
 ## Checks before committing here
 1. `blender -b -P forge/smoke_crate.py` prints `FORGE_DONE`, and the previews look right.

@@ -52,13 +52,16 @@ export function checkSheet(sheet) {
 }
 
 // A page with the hooks ready and real time stopped. Game checks share this instead of their own launch code.
-export async function open(url, { width = 480, height = 270 } = {}) {
+export async function open(url, { width = 480, height = 270, sockets = false } = {}) {
   const { chromium } = await import('playwright-core');
   // software WebGL, so it runs headless with no GPU
   const browser = await chromium.launch({ executablePath: BROWSER, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const page = await (await browser.newContext({ viewport: { width, height } })).newPage(); // a context, so tile() can open a second page
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
+  // A dev server's hot reload restarts the page mid-run when another lane saves a file ("Execution context
+  // was destroyed"). Holding every websocket silent keeps the page as loaded. A game that needs one passes sockets: true.
+  if (!sockets) await page.routeWebSocket(/.*/, () => {});
   await page.goto(url);
   await page.waitForFunction(() => window.render_game_to_text && window.advanceTime, null, { timeout: 30000 });
   await page.evaluate(() => window.advanceTime(0)); // the first call stops real time
