@@ -50,6 +50,13 @@ func _physics_process(delta: float) -> void:
 12. **Store yaw, pitch and distance,** never a world position, and rebuild the camera from them every frame. Clamp the pitch.
 13. **Look input has three sources and one result.** Stick and keys through input actions; the mouse through `InputEventMouseMotion.screen_relative` while captured (a browser only allows `Input.mouse_mode = Input.MOUSE_MODE_CAPTURED` from inside an input event, so capture on a click); a thumb through `InputEventScreenDrag.screen_relative` on the side of the screen without the stick. A phone player often has no thumb free to look, so with no look input the camera eases back behind the hero's heading.
 
+14. **A calm frame, a lively hero.** A hero pinned to one spot on the screen at one speed gives the eye nothing, and a player called it "a drone". The fix is never to rattle the frame: camera bob and shake are simulation-sickness triggers (Nesky). Move the hero inside the frame instead:
+    - the player's own look is immediate, no lag on yaw or pitch;
+    - the pivot follows the hero through a damper with a limit ("an elastic band ... make sure it has a limit"), so at a start the hero pulls ahead and at a stop the camera arrives late;
+    - hops are ignored: the pivot's height follows the floor under the hero, not the hero in the air, and moves after a landing on a higher floor;
+    - once the run is steady, aim a little ahead along the velocity; drift the yaw behind the velocity (not the stick) only after the player has left the view alone, which matters most on a phone where the look thumb is busy;
+    - field of view fixed, or changed slowly and by little.
+
 ## Checks
 `render_game_to_text()` reports `camInside` (is the lens inside or behind any static solid) and `heroScreen` (the hero's height as a share of the frame, from `unproject_position()` of its top and its feet). `camInside` must not reuse the arm's own cast: use a ray from the hero's head to the lens plus a sphere overlap at the lens. Put a band for `heroScreen` on the sheet and let the probe hold it (`measure: state`).
 - `camInside` is false and `heroScreen` is in its band: in the open, under the lowest crawl gap, inside every kind of container, and pressed into a corner with the camera turned toward the wall.

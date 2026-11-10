@@ -50,7 +50,7 @@ A number nobody anchored is a guess, and a guess reads as fake in the first minu
    - speed for each way it moves (walk, trot, run, sprint; crawl, climb, swim), time to reach it, stopping distance;
    - turning: how tight at each speed;
    - endurance: how long the fastest gait lasts, how long recovery takes;
-   - leaving the ground: take-off speed, reach, what it can climb and what it cannot, how it comes down, what a fall costs;
+   - leaving the ground: take-off speed, reach, what it can climb and what it cannot, how it comes down, what a fall costs. Give each kind of jump its own row: the everyday hop sized to what it clears (`v = sqrt(2 g h)`), and the measured maximum only as the ceiling for jumps to a target. One build used the species' record take-off for every hop: 0.82 s in the air on flat ground, which the player called floaty;
    - senses and reaction time, if the rules use them.
 2. **Every pair that meets** (each chaser or hazard against the hero). Who is faster, over what distance? How does the slower one get away: outrun, out-turn, a refuge the other cannot enter (height, a gap, a door)? Write a pair row. A pair with no escape is a design bug, and so is a hazard that can never catch anyone.
    - **When two actors touch** (petting, feeding, handing over, biting, carrying): which part of each body meets, and at what height? A standing adult's hand hangs at mid-thigh; a small animal's back is far below it. If the heights differ, one of them bends, kneels, jumps or is lifted, and the sheet says which. Add rows for the reach of each, so the rules bring them close enough and the poses can meet.

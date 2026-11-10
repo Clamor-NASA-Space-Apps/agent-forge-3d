@@ -20,6 +20,7 @@ A creature animated only from code on a joint rig looked dead in play: every pos
 ## 2. Gait follows speed, never the key
 The body (see `skills/character-body`) produces a speed; the animation reads it. A run key that swaps a clip while the body still moves at a jog, or a "run" that is the walk clip played faster, is the most common tell of a fake animal.
 - **Bands come from the sheet** (`skills/reality-sheet`): walk, trot, gallop (or walk, run for two legs), each with its speed range, with hysteresis so a speed on the edge doesn't flicker. Report `gait` in `render_game_to_text()`.
+- **The body keeps the sheet's steady speed; the model does not.** A real gallop pulses: the front legs brake and the hind legs push in every stride (Walter and Carrier 2007), and the shoulders rise and fall with each step while the head stays steadier. A model pinned to its capsule at one speed reads as gliding, and a player said so ("runs at a constant steady speed, which is impossible"). So the model surges fore and aft inside the stride and bounces, on springs, while the capsule and every probe row stay steady. The amplitudes are feel numbers: judge them in a film.
 - **Each band has its own footfall pattern.** This is what each clip must show on film, and what the fallback must generate (phase offset of each foot in the stride, 0 to 1):
 
   | Gait | Order of the feet (phase offset in the stride) | Feet on the ground | Body |
@@ -93,6 +94,7 @@ The forge can still deliver a joint rig (named bones or joint nodes, no clips). 
 - The user watches it move. Stiffness only shows in motion, so capture a few frames in a row or have the user play.
 
 ## Sources
+- R. M. Walter and D. R. Carrier, "Ground forces applied by galloping dogs", J Exp Biol 210 (2007): forelimbs decelerate, hindlimbs accelerate, in every stride: https://pubmed.ncbi.nlm.nih.gov/17210958/
 - David Rosen, "An Indie Approach to Procedural Animation", GDC 2014 (Overgrowth: about 13 keyframes plus procedural layers): https://gamedeveloper.com/design/video-an-indie-approach-to-procedural-animation
 - M. Hildebrand, "Symmetrical gaits of horses", Science 150 (1965) and "The quadrupedal gaits of vertebrates", BioScience 39 (1989): gaits as footfall order and time on the ground.
 - The making of Stray (a mostly hand-keyframed cat; the bar for animal feel): https://www.unrealengine.com/developer-interviews/28-people-and-two-cats-inside-the-making-of-stray
