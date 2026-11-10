@@ -1,5 +1,5 @@
 extends SceneTree
-## The base of a headless test. A test file says `extends "res://addons/forge/test.gd"`, writes play(), and runs with
+## The base of a headless test. A test file says `extends "res://addons/forge/test.gd"`, writes `func play() -> bool` ending in `return true`, and runs with
 ##   godot --headless --path . -s tests/<name>.gd      (prints "N failed", exit 1 on a failure)
 ## It carries what every such test got wrong once: the 64 x 64 headless window, an error inside an awaited
 ## start that idles forever, and made-up touches that were kinder than a browser's.
@@ -26,13 +26,17 @@ func _initialize() -> void:
 		quit(1))
 	slots.resize(8)
 	await shape(SHAPES[0])
-	await play()
+	# A script error ends play() early and hands control back here as if it had finished: without this
+	# a test whose scene failed to load printed "0 failed".
+	if await play() != true:
+		check(false, "play() did not reach its end: read the first error above")
 	print("%d failed" % failed)
 	quit(1 if failed else 0)
 
 
-func play() -> void:
-	pass
+## The test. End it with `return true`: that is how the base knows it was not cut short.
+func play() -> bool:
+	return true
 
 
 func check(ok: bool, what: String) -> bool:
