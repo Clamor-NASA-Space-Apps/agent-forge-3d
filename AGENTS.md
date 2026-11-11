@@ -93,6 +93,7 @@ This shortens the solution, never the reading: trace the flow the change touches
 |---|---|---|
 | any moving actor, a chase, a jump, a physical number | `reality-sheet` | |
 | a creature on screen (hero or NPC) | `character-life` | `godot-animation` |
+| a suited or armoured actor (space suit, diving suit, armour) | `suited-locomotion` | `godot-animation` |
 | a body the player controls | `character-body` | `godot-physics`, `input-systems` |
 | solids to touch: props, buildings, curbs | `world-collision` | `godot-physics` |
 | a walker or vehicle on loose ground (dust, sand, snow, mud) | `ground-contact-fx` | `godot-shaders` |
