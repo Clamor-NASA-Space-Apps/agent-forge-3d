@@ -70,6 +70,9 @@ if (d.quality) {
   }
 }
 const budgets = d.geometry?.budgets || {};
+// kit models keep their own material names and take a role by DESIGN.md `kit` at load (house_style.gd _pick,
+// first matching pattern, case-insensitive); `#hex` anchors are for kit-roles.mjs, not names
+const kitRole = n => Object.entries(d.kit || {}).find(([p]) => !p.startsWith('#') && new RegExp(p, 'i').test(n))?.[1];
 if (!budgets.prop) fails.push('geometry.budgets.prop is missing');
 
 // column-major 4x4 helpers, enough to place a mesh's vertices in the scene
@@ -110,7 +113,12 @@ for (const file of glbs) {
   const b = budgets[cls] || {};
   for (const m of doc.getRoot().listMaterials()) {
     const t = mats[m.getName()];
-    if (!t) { fails.push(`${name}: material "${m.getName()}" is not a DESIGN.md role`); continue; }
+    if (!t) {
+      const role = kitRole(m.getName());
+      // mapped by name: the role's own values replace the file's at load, so there is nothing to compare
+      if (!role || !mats[role]) fails.push(`${name}: material "${m.getName()}" is not a DESIGN.md role or a kit name`);
+      continue;
+    }
     const off = Math.max(...lin(t.color).map((v, i) => Math.abs(v - m.getBaseColorFactor()[i])));
     if (off > TOL) fails.push(`${name}: "${m.getName()}" colour is off its token by ${off.toFixed(3)}`);
     const rough = t.roughness ?? 0.6; // same default as lib.py and house-style.js
