@@ -167,6 +167,8 @@ hold still, and by the mesh's own position on meshes that move, so it travels wi
   quality preset asks for it; `normal` (OpenGL convention) and `roughness` are the same set's other maps.
   Either one only shades the role's colour, light and dark, and the roughness map keeps the role's
   roughness as its average: the palette stays the palette.
+- `opacity` (0 to 1, default 1): below 1 the role is see-through glass, alpha blended. Blended surfaces sort
+  and cost more on a phone, so keep it to glass.
 - `shadow: false`: the role only ever lies flat on the ground (a road, a lawn), so drawing it into the
   sun's shadow map would be work for nothing.
 - `lit: { color, emissive, share, period }`: panes of this role light up one by one, `share` of them
