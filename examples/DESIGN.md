@@ -179,7 +179,10 @@ hold still, and by the mesh's own position on meshes that move, so it travels wi
 `quality` holds the presets a player can choose between, `low`, `medium` and `high`. A phone starts on
 `low`, anything else on `high`. Each preset sets all of these, so switching leaves nothing behind:
 - `msaa` (0, 2, 4, 8) and `scale` (the 3D picture's size as a share of the window): edges and pixels.
-- `shadows` (0 for none, else the sun's splits: 1, 2 or 4) and `shadowMap` (pixels).
+- `shadows` (0 for none, else the sun's splits: 1, 2 or 4) and `shadowMap` (pixels). Optional: `shadowRange`
+  (metres of shadow, capped by the fog's far end), `shadowFilter` (0 hard to 5; 2 is 5 taps, 4 is 13) and
+  `normalBias`. The near split is sized from the sun's elevation to hold a person's whole shadow
+  (`lighting.shadowPad`, metres added for the camera, default 6): skills/shadows-and-grounding.
 - `glow` (0 for none, else its strength) and `lamps` (how many lamps shine at once, the nearest ones).
 - `detail`: `off`, `code` (each role's pattern) or `texture` (its photo, where it names one).
 

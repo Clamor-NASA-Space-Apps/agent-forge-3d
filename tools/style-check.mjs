@@ -49,6 +49,8 @@ const QUALITY = {
   msaa: v => [0, 2, 4, 8].includes(v), scale: v => v >= 0.25 && v <= 1, shadows: v => [0, 1, 2, 4].includes(v),
   shadowMap: v => [256, 512, 1024, 2048, 4096].includes(v), glow: v => typeof v === 'number' && v >= 0,
   lamps: v => Number.isInteger(v) && v >= 0, detail: v => ['off', 'code', 'texture'].includes(v),
+  shadowRange: v => typeof v === 'number' && v > 0, shadowFilter: v => [0, 1, 2, 3, 4, 5].includes(v),
+  normalBias: v => typeof v === 'number' && v >= 0,
 };
 const hex = v => /^#[0-9a-f]{6}$/i.test(v), size = v => [v].flat().every(n => typeof n === 'number' && n > 0) && [v].flat().length <= 2;
 for (const [n, m] of Object.entries(mats)) {
