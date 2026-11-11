@@ -95,6 +95,7 @@ This shortens the solution, never the reading: trace the flow the change touches
 | a creature on screen (hero or NPC) | `character-life` | `godot-animation` |
 | a body the player controls | `character-body` | `godot-physics`, `input-systems` |
 | solids to touch: props, buildings, curbs | `world-collision` | `godot-physics` |
+| a walker or vehicle on loose ground (dust, sand, snow, mud) | `ground-contact-fx` | `godot-shaders` |
 | jumping, climbing, getting in or on | `contextual-traversal` | |
 | a follow camera | `third-person-camera` | `camera-systems` |
 | traffic, crowds, chasers | `living-world` | `game-ai` |
