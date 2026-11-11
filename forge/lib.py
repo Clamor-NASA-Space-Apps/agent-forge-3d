@@ -20,6 +20,7 @@ import math
 import os
 import subprocess
 
+import bmesh
 import bpy
 from mathutils import Vector
 
@@ -166,6 +167,102 @@ def smooth(obj, angle_deg=30):
     obj.modifiers.new("WeightedNormal", "WEIGHTED_NORMAL").keep_sharp = True
     obj.select_set(False)
     return obj
+
+
+def prism(name: str, profile: list, width: float, x: float = 0.0, mat=None):
+    """A solid from a side profile [(y, z), ...] (counter-clockwise seen from +X), `width` across X:
+    cabins, ramps, wedges, anything a box cannot cut."""
+    me = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    left = [bm.verts.new((x - width / 2, y, z)) for y, z in profile]
+    right = [bm.verts.new((x + width / 2, y, z)) for y, z in profile]
+    bm.faces.new(list(reversed(left)))
+    bm.faces.new(right)
+    for i in range(len(profile)):
+        j = (i + 1) % len(profile)
+        bm.faces.new((left[i], left[j], right[j], right[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(o)
+    if mat:
+        o.data.materials.append(mat)
+    return o
+
+
+def bar(name: str, p0, p1, r: float, mat=None, verts: int = 8):
+    """A round rod from p0 to p1: rails, posts, pipes, struts."""
+    a, b = Vector(p0), Vector(p1)
+    o = cyl(name, r, (b - a).length, (a + b) / 2, mat, verts)
+    o.rotation_euler = (b - a).to_track_quat("Z", "Y").to_euler()
+    return o
+
+
+def label(name: str, text: str, size: float, loc, rot, mat, depth: float = 0.008, font: str | None = None, bold: float = 0.0):
+    """Raised lettering as real geometry, so no texture can blur it. `font` is a .ttf/.otf path
+    (Blender's built-in font when None); `bold` thickens strokes by that share of `size`."""
+    cu = bpy.data.curves.new(name, "FONT")
+    cu.body, cu.size, cu.extrude, cu.resolution_u, cu.offset = text, size, depth, 2, bold * size
+    cu.align_x, cu.align_y = "CENTER", "CENTER"
+    if font:
+        cu.font = bpy.data.fonts.load(font, check_existing=True)
+    o = bpy.data.objects.new(name, cu)
+    bpy.context.scene.collection.objects.link(o)
+    o.location, o.rotation_euler = loc, rot
+    bpy.context.view_layer.objects.active = o
+    o.select_set(True)
+    bpy.ops.object.convert(target="MESH")
+    o = bpy.context.object
+    o.data.materials.clear()
+    o.data.materials.append(mat)
+    o.select_set(False)
+    return o
+
+
+def join(name: str, parts: list):
+    """Parts into one node, modifiers applied; the first part's origin stays. A game that moves or
+    hides a piece by name needs it as one node."""
+    bpy.ops.object.select_all(action="DESELECT")
+    for p in parts:
+        p.select_set(True)
+        bpy.context.view_layer.objects.active = p
+        for m in list(p.modifiers):
+            bpy.ops.object.modifier_apply(modifier=m.name)
+    bpy.context.view_layer.objects.active = parts[0]
+    bpy.ops.object.join()
+    o = bpy.context.object
+    o.name = o.data.name = name
+    o.select_set(False)
+    return o
+
+
+def settle(o, origin):
+    """Bake rotation and scale into the mesh and put the node's origin at `origin` (a hinge, a hub),
+    so the engine turns the part about its own axes: a door on its hinge, a wheel on its axle."""
+    bpy.ops.object.select_all(action="DESELECT")
+    o.select_set(True)
+    bpy.context.view_layer.objects.active = o
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    bpy.context.scene.cursor.location = origin
+    bpy.ops.object.origin_set(type="ORIGIN_CURSOR")
+    bpy.context.scene.cursor.location = (0, 0, 0)
+    o.select_set(False)
+    return o
+
+
+def tyre(name: str, r: float, w: float, at, tyre_mat, hub_mat, verts: int = 24, lugs: int = 0):
+    """One wheel (axle along X) as one node with its origin on the hub. `lugs` adds tread blocks that
+    reach the full radius `r` from a slightly smaller carcass."""
+    t = bevel(cyl(name, r * (0.94 if lugs else 1), w, at, tyre_mat, verts, rot=(0, math.pi / 2, 0)), width=w * 0.15, segments=1)
+    parts = [smooth(t), smooth(cyl(name + "_hub", r * 0.55, w * 1.04, at, hub_mat, 16, rot=(0, math.pi / 2, 0)))]
+    for i in range(lugs):
+        a = 2 * math.pi * i / lugs
+        lug = box(name + f"_lug{i}", (w * 0.9, r * 0.12, r * 0.06),
+                  (at[0], at[1] + math.cos(a) * r * 0.97, at[2] + math.sin(a) * r * 0.97), tyre_mat)
+        lug.rotation_euler = (a - math.pi / 2, 0, 0)  # its thin side points out from the axle
+        parts.append(lug)
+    return settle(join(name, parts), at)
 
 
 def _meshes():

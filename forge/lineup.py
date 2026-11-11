@@ -5,6 +5,8 @@
 #   FORGE_PROBES=1 FORGE_DESIGN=variant.md FORGE_OUT=v/out FORGE_PREVIEWS=v blender -b -P forge/lineup.py
 #       builds the style probes with that design first (how style variants are compared)
 #   blender -b -P forge/lineup.py -- cat=0.3 dog=0.55  # sizes those models first: downloads come in their own units
+# Skipped: `terrain_*` and any class whose height budget tops 100 m. A backdrop kilometres high in the
+# same row shrinks every model beside it to a dot.
 import glob
 import os
 import runpy
@@ -23,6 +25,7 @@ if os.environ.get("FORGE_PROBES"):
 
 want = dict(a.split("=") for a in sys.argv[sys.argv.index("--") + 1:]) if "--" in sys.argv else {}
 WIDE = 25.0  # metres of models in one picture: a longer row is a strip nobody can judge
+BUDGETS = lib.DESIGN.get("geometry", {}).get("budgets", {})
 pages = []
 
 
@@ -41,6 +44,10 @@ def shoot(x, depth):
 lib.reset()
 x, depth = 0.0, 2.0
 for glb in sorted(glob.glob(os.path.join(lib.OUT, "*.glb"))):
+    cls = os.path.basename(glb).split("_")[0]  # the class prefix, as style-check reads it
+    if cls == "terrain" or BUDGETS.get(cls, {}).get("height", [0, 0])[-1] > 100:
+        print("lineup: skipped", os.path.basename(glb), "(landscape scale)")
+        continue
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=glb)
     new = [o for o in bpy.data.objects if o not in before]
