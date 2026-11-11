@@ -164,6 +164,7 @@ The factory gets better every time it hits an obstacle.
 - Reference images: the fastest route is giving the user Google Images search terms (one line each, saying what it's for) and letting them save into `design/refs/`. An image pasted in chat is not on disk, so ask for the file. Store and press CDNs can be blocked on a venue router, and WebFetch drops article images.
 - A web export ships only what the engine imports: data files (`*.json`) need the preset's `include_filter` (`new-project.mjs` writes it), and a folder of references or tools inside the project ships too unless it holds a `.gdignore` (`new-project.mjs` writes one into `design/`, `research/`, `forge/` and `tools/`, and the tools into their output folder).
 - A review finding can be wrong: run the check it names before merging the fix.
+- Depth fog's `fog_density` is the most fog anything gets, and the engine's 0.01 left the far end 1% fogged (measured, 4.7.2): `apply_lighting()` now sets it from `fog.density` (default 1). The same rig's `ProceduralSkyMaterial` drew the sun disc at the light's energy, darker than a bleached horizon, so a design with `sunDisc` gets `sky.gdshader`.
 
 ## Checks before committing here
 1. `blender -b -P forge/smoke_crate.py` prints `FORGE_DONE`, and the previews look right.

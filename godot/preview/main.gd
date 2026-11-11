@@ -9,11 +9,14 @@ extends Node3D
 ## orbit, wheel to zoom. glb: models in a row, like forge/lineup.py, beside a person of `geometry.human`.
 ## lamps: count of `lighting.lamp` lights over the row. One swatch sphere per material role sits in
 ## front, so roles no model uses (fur, skin) are seen too.
+## backdrop: models placed as they are, outside the row (terrain, far hills), so fog and sky are judged
+## at distance; it replaces the flat ground.
 
 var designs: Array[Dictionary] = []
 var names: PackedStringArray = []
 var current := 0
 var models: Array[Node3D] = []
+var backdrops: Array[Node3D] = []
 var extras: Array[Node] = []
 var width := 1.0
 var centre := Vector3.ZERO
@@ -42,6 +45,13 @@ func _ready() -> void:
 		x += box.size.x + 0.8
 		models.append(m)
 	width = x + 0.6
+	for f: String in str(opt.get("backdrop", "")).split(",", false):
+		var b := Forge.load_glb(f)
+		if b:
+			add_child(b)
+			backdrops.append(b)
+	if backdrops:
+		$Camera3D.far = 20000.0
 	centre = Vector3(width / 2, 0.8, 0.6)
 	_show(0, int(opt.get("lamps", "0")))
 	Forge.register(self)
@@ -76,12 +86,15 @@ func _show(i: int, lamps: int = -1) -> void:
 	Forge.HouseStyle.apply_lighting(self, design)
 	for m in models:
 		Forge.HouseStyle.apply(m, design)
+	for b in backdrops:
+		Forge.HouseStyle.apply(b, design, true)
 	var ground := StandardMaterial3D.new()
 	ground.albedo_color = Color.html(design.lighting.get("ground", "#777777"))
 	ground.roughness = 0.9
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(60, 60)
-	_mesh(plane, ground, Vector3.ZERO)
+	if backdrops.is_empty():
+		_mesh(plane, ground, Vector3.ZERO)
 	# the person is plain grey: a scale reference, not a model
 	var h: float = design.get("geometry", {}).get("human", 1.8)
 	var grey := StandardMaterial3D.new()
@@ -113,8 +126,11 @@ func set_view(v: String) -> void:
 		"front": Vector3(centre.x, 1.4, width * 1.1),
 		"low": Vector3(centre.x - width * 0.3, 0.3, 4),
 	}
+	# eye: standing behind the row at head height, looking level down -Z, where a backdrop puts its horizon
+	presets["eye"] = Vector3(centre.x, 1.6, width * 0.9 + 4)
 	view = v if presets.has(v) else "three"
-	$Camera3D.look_at_from_position(presets[view], centre)
+	var at := centre + Vector3(0, 0.8, -1000) if view == "eye" else centre
+	$Camera3D.look_at_from_position(presets[view], at)
 
 
 func _unhandled_input(e: InputEvent) -> void:

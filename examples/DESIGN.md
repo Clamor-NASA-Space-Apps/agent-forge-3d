@@ -159,12 +159,14 @@ The seven core roles every DESIGN.md must define, because probes and kit mapping
 `trim`, `accent`, `metal`, `glass`, `rock`, `light`. A project adds more if its references need them.
 A recipe asks for a material by role name (`mat("body")`); a raw colour is an error.
 
-A role may also say what its surface is made of, for meshes that never move (the engine lays it on by
-world position, so it would slide over anything that walks):
-- `detail: { pattern, size, strength, texture, textureSize }`. `pattern` is drawn by code: `grain`,
-  `bricks`, `tiles` or `planks`, `size` metres per repeat (a number, or `[w, h]`), `strength` 0 to 1.
-  `texture` is a photo beside this file, `textureSize` metres across, shown where a quality preset asks
-  for it. Either one only shades the role's colour, light and dark: the palette stays the palette.
+A role may also say what its surface is made of. The engine lays it on by world position on meshes that
+hold still, and by the mesh's own position on meshes that move, so it travels with them:
+- `detail: { pattern, size, strength, texture, normal, roughness, textureSize }`. `pattern` is drawn by
+  code: `grain`, `bricks`, `tiles` or `planks`, `size` metres per repeat (a number, or `[w, h]`),
+  `strength` 0 to 1. `texture` is a photo beside this file, `textureSize` metres across, shown where a
+  quality preset asks for it; `normal` (OpenGL convention) and `roughness` are the same set's other maps.
+  Either one only shades the role's colour, light and dark, and the roughness map keeps the role's
+  roughness as its average: the palette stays the palette.
 - `shadow: false`: the role only ever lies flat on the ground (a road, a lawn), so drawing it into the
   sun's shadow map would be work for nothing.
 - `lit: { color, emissive, share, period }`: panes of this role light up one by one, `share` of them
@@ -191,6 +193,13 @@ world position, so it would slide over anything that walks):
 
 One sun at 40° elevation, warm white, with sky and ground fill. ACES tone mapping at exposure 1.
 Light fog in the sky colour from 40 to 160 m. The same rig lights the forge previews and the game.
+
+Optional `lighting` keys: `horizon` (the sky's colour at the horizon; else `sky`), `ambientColor` (the
+shade's colour; a cool one keeps shadows from going muddy), `sunDisc` (the sun drawn in the sky, degrees
+across, with a haze about ten times wider; 0 or absent draws none). `fog` also takes `density` (the most
+fog anything gets, at `far`: 1 by default; a far hill wants 0.4 to 0.7), `curve` (above 1 keeps the
+near ground clear), `sky` (how much fog covers the sky: low keeps its gradient) and `sun` (fog lit when
+you look toward the sun).
 
 ## Kit adaptation
 
