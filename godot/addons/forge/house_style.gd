@@ -563,7 +563,7 @@ const KNOBS := {
 	"detail": {"values": ["off", "code", "texture"], "default": "off", "recompile": true},
 	"lamps": {"values": [0, 1, 2, 4, 8, -1], "default": -1, "recompile": true},  # nearest lamps lit, -1 all
 	"vsync": {"values": [true, false], "default": true, "recompile": false},
-	"maxFps": {"values": [0, 30, 60, 120], "default": 0, "recompile": false},  # 0 = no cap
+	"maxFps": {"values": [0, 30, 45, 60, 120], "default": 0, "recompile": false},  # 0 = no cap; 45 is every second refresh of a 90 Hz phone
 	"trail": {"values": [512, 1024, 2048], "default": 2048, "recompile": false, "game": true},  # print map pixels
 	"particles": {"values": [0.25, 0.5, 0.75, 1.0], "default": 1.0, "recompile": false, "game": true},  # share of dust
 	"ground": {"values": ["flat", "cheap", "full"], "default": "full", "recompile": true, "game": true},  # ground shader
