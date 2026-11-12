@@ -97,6 +97,7 @@ This shortens the solution, never the reading: trace the flow the change touches
 | a body the player controls | `character-body` | `godot-physics`, `input-systems` |
 | solids to touch: props, buildings, curbs | `world-collision` | `godot-physics` |
 | a walker or vehicle on loose ground (dust, sand, snow, mud) | `ground-contact-fx` | `godot-shaders` |
+| a world the player walks through: sound, ambient motion, a hero that breathes, weight; a playtest that says "static" or "silent" | `living-atmosphere` | `godot-audio`, `godot-animation` |
 | a sun with shadows and a followed hero; a hero who must stand on the ground | `shadows-and-grounding` | `godot-3d-essentials` |
 | jumping, climbing, getting in or on | `contextual-traversal` | |
 | a follow camera | `third-person-camera` | `camera-systems` |
