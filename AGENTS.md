@@ -95,6 +95,7 @@ This shortens the solution, never the reading: trace the flow the change touches
 | a creature on screen (hero or NPC) | `character-life` | `godot-animation` |
 | a suited or armoured actor (space suit, diving suit, armour) | `suited-locomotion` | `godot-animation` |
 | a body the player controls | `character-body` | `godot-physics`, `input-systems` |
+| things to use: doors, switches, pick-ups, a vehicle to board | `character-body` (Using things) | `godot-physics` |
 | solids to touch: props, buildings, curbs | `world-collision` | `godot-physics` |
 | a walker or vehicle on loose ground (dust, sand, snow, mud) | `ground-contact-fx` | `godot-shaders` |
 | a world the player walks through: sound, ambient motion, a hero that breathes, weight; a playtest that says "static" or "silent" | `living-atmosphere` | `godot-audio`, `godot-animation` |

@@ -1,6 +1,6 @@
 ---
 name: character-body
-description: "The body a player controls in a Godot 4.7 game, beside a pure GDScript rules sim: a CharacterBody3D under Jolt with speed as a curve (acceleration, braking, speed-dependent turning, stamina) read from the reality sheet, collision shapes that cover the whole drawn body, curb stepping, crouch and headroom checks, knock-backs, vehicles and people moved by the sim, and input actions fed by keys and by touch controls alike. Use when the plan has a body the player controls, before writing the player lane's brief."
+description: "The body a player controls in a Godot 4.7 game, beside a pure GDScript rules sim: a CharacterBody3D under Jolt with speed as a curve (acceleration, braking, speed-dependent turning, stamina) read from the reality sheet, collision shapes that cover the whole drawn body, curb stepping, crouch and headroom checks, knock-backs, vehicles and people moved by the sim, input actions fed by keys and by touch controls alike, and using things (the target measured to its shape from either side, picked by aim, with a stable prompt). Use when the plan has a body the player controls, before writing the player lane's brief."
 ---
 
 # Character body beside a pure sim
@@ -45,6 +45,15 @@ A capsule sized for the legs lets the head, the rump or the shoulders pass into 
 - **A seat:** measure the seated pose in the vehicle's space (boots, helmet, pack, knees) and size the cabin and the seat from it: boots on the floor, helmet under the roof and clear of a raked windscreen. The seat point is an empty in the model, read at load. A seated helmet came through a roof that was never measured against it.
 - `place(pos, yaw_deg)` puts the hero down for a probe row: set the transform, zero `velocity`, reset anything that eases (pose, camera).
 
+## Using things: target the shape, both sides
+A door that offered its prompt at one point beside it had to be lined up on, and could not be closed from inside: the point was beyond the wall (one playtest). The target is the thing, not a spot near it.
+1. **Reach is to the shape.** Measure from the body to the nearest point of the thing's collision box, kept in the thing's own space so it swings, tilts and slides with it, and count height only past the feet or the head. Source's `+use` does both: `CalcNearestPoint()` on the object's collision, and a height gap measured against the player's own box (`IntervalDistance`). A door is reachable from either face, mid-swing and open; a long thing anywhere along its length.
+2. **What closes an opening is also used at the opening.** An open door swung behind its jamb, or a gathered curtain, is still offered where it shuts, so it closes from either side without walking round it.
+3. **In sight of the hands.** Drop a candidate a wall hides: a ray from the hands to its nearest point, its middle or its ends, where the thing's own body does not count (Source: "make sure the object isn't behind glass or a grate"). Without it, something in reach through a thin wall shows its prompt outside.
+4. **Pick by aim.** First person: what the view's centre rests on, if usable and in reach, wins outright (Source traces the view first and "if this is directly under the cursor just return it now"); else the one whose shape lies nearest the view line inside a cone (Source keeps an object only at `dot >= 0.8`, about 37 degrees each side). Third person: the same, round the body's heading. The nearest-to-aim rule tells close things apart, so the cone can be wide.
+5. **Stick, don't flicker.** The current target counts a few degrees nearer the aim, at the cone's edge and against a rival, so a heading that wobbles between two things keeps one prompt. A tuning value, tested by rocking the heading between two things.
+6. **The prompt says what the key will do,** in the thing's state ("Open door", "Close door"), and lights the touch button the same way. Mark the target while in reach (Minecraft highlights the targeted block "when within the reach distance"). Large, forgiving targets are an accessibility rule: "Ensure interactive elements / virtual controls are large and well spaced" (Game Accessibility Guidelines); Minecraft Bedrock gives touch more reach than mouse (6 blocks against 5).
+
 ## Checks
 - `node ../../tools/feel-probe.mjs data/reality.json .` passes every `speed`, `ramp`, `stop`, `turn`, `burst` and `jump` row.
 - **Body sweep:** walk the hero into a wall at eight headings, and turn on the spot beside it: `overhang` stays 0.
@@ -52,8 +61,12 @@ A capsule sized for the legs lets the head, the rump or the shoulders pass into 
 - Steps onto the world's curb and is stopped by the next size up. A crawl gap blocks standing and passes crouched; standing up under it is refused.
 - A knock moves the hero. The feet measures stay inside their sheet rows in every pose.
 - Every action has a touch control: play the web build on a phone with thumbs only.
+- **Using things:** a grid of standing spots on both faces of every door and curtain (a few distances, across its width, a few headings off facing it): each spot in reach and facing gets the prompt, shut and open; out of reach, facing away and behind a wall get none; open and close it from either side in every order; in first person the view picks with the body turned away; rocking the heading between two things never flips the target.
 
 ## Sources
+- Source SDK 2013, `CBasePlayer::FindUseEntity()` (view trace first, nearest point of the collision, `dot < 0.8` rejected, occlusion check, height by `IntervalDistance`): https://github.com/ValveSoftware/source-sdk-2013/blob/master/src/game/shared/baseplayer_shared.cpp
+- Minecraft Wiki, Interaction range (targets highlighted within reach; Bedrock touch 6 blocks, mouse 5): https://minecraft.wiki/w/Interaction_range
+- Game Accessibility Guidelines, full list: https://gameaccessibilityguidelines.com/full-list/
 - GMTK Platformer Toolkit, "Behind the code" (coyote time, jump buffer): https://gmtk.itch.io/platformer-toolkit/devlog/395523/behind-the-code
 - Godot class reference, `CharacterBody3D` and `SeparationRayShape3D`: https://raw.githubusercontent.com/godotengine/godot-docs/4.7/classes/class_characterbody3d.rst
 - Rockstar on analysing each gait's linear, angular and lateral speed limits: https://gamedeveloper.com/design/rockstar-s-quest-for-the-ultimate-video-game-horse
