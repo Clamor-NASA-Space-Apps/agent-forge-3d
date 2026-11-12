@@ -191,7 +191,8 @@ file has none, so its town stays clean. Every key, with what house_style.gd fall
 ## Quality
 
 `quality` holds the presets a player can choose between, `low`, `medium` and `high`. A phone starts on
-`low`, anything else on `high`. Each preset sets all of these, so switching leaves nothing behind:
+`low`, anything else on `high`. A game may name its own presets instead (weakest first), marking one
+`start: phone` and one `start: desktop`. Each preset sets all of these, so switching leaves nothing behind:
 - `msaa` (0, 2, 4, 8) and `scale` (the 3D picture's size as a share of the window): edges and pixels.
 - `shadows` (0 for none, else the sun's splits: 1, 2 or 4) and `shadowMap` (pixels). Optional: `shadowRange`
   (metres of shadow, capped by the fog's far end), `shadowFilter` (0 hard to 5; 2 is 5 taps, 4 is 13) and

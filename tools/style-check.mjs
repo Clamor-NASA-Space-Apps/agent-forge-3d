@@ -58,6 +58,7 @@ const QUALITY = {
   // read by the game's own restyle, not by set_quality() (house_style.gd KNOBS marks them `game`)
   trail: v => [256, 512, 1024, 2048, 4096].includes(v), particles: v => typeof v === 'number' && v >= 0 && v <= 1,
   ground: v => ['flat', 'cheap', 'full'].includes(v),
+  start: v => ['phone', 'desktop'].includes(v),  // default_quality(): where a game starts before the player chooses
 };
 const hex = v => /^#[0-9a-f]{6}$/i.test(v), size = v => [v].flat().every(n => typeof n === 'number' && n > 0) && [v].flat().length <= 2;
 for (const [n, m] of Object.entries(mats)) {
@@ -102,8 +103,10 @@ if (C) {
   for (const k of Object.keys(C)) if (!known.includes(k)) fails.push(`lighting.celestial.${k} is not a key house_style.gd reads (${known.join(', ')})`);
 }
 if (d.quality) {
-  // default_quality() answers low or high, and a settings screen offers all three
-  for (const level of ['low', 'medium', 'high']) if (!d.quality[level]) fails.push(`quality.${level} is missing`);
+  // default_quality() answers the presets marked `start: phone` and `start: desktop`, else low or high
+  const starts = Object.values(d.quality).map(q => q.start).filter(Boolean);
+  if (starts.length) for (const s of ['phone', 'desktop']) { if (starts.filter(x => x === s).length !== 1) fails.push(`quality: exactly one preset needs start: ${s}`); }
+  else for (const level of ['low', 'medium', 'high']) if (!d.quality[level]) fails.push(`quality.${level} is missing (or mark presets with start: phone and start: desktop)`);
   for (const [level, q] of Object.entries(d.quality)) for (const [k, v] of Object.entries(q)) {
     if (!QUALITY[k]) fails.push(`quality.${level}.${k} is not a key set_quality() reads (${Object.keys(QUALITY).join(', ')})`);
     else if (!QUALITY[k](v)) fails.push(`quality.${level}.${k}: ${JSON.stringify(v)} is out of range`);
