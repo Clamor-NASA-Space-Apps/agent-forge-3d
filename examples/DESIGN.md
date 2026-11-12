@@ -115,7 +115,7 @@ project copies. **A real project never ships it:** its own DESIGN.md is written 
 shown reference images and picked one of three rendered variants.
 
 The front matter is the normative part, in Google Labs' DESIGN.md format (`npx design.md lint`
-checks it). The 3D keys (`materials`, `geometry`, `lighting`, `quality`, `kit`) are our extension; the linter
+checks it). The 3D keys (`materials`, `geometry`, `lighting`, `quality`, `kit`, `weathering`) are our extension; the linter
 accepts them. This file is the only place a colour value may appear. The forge (`forge/lib.py`),
 the browser (`runtime/house-style.js`) and the checker (`tools/style-check.mjs`) all read it.
 
@@ -173,6 +173,20 @@ hold still, and by the mesh's own position on meshes that move, so it travels wi
   sun's shadow map would be work for nothing.
 - `lit: { color, emissive, share, period }`: panes of this role light up one by one, `share` of them
   at any moment, each deciding again every `period` seconds. For windows at night.
+- `weathering` (0 to 1, default 1): the role's share of the coat below. 0 for lights, ground and rock that
+  already are the coat's colour, plants indoors; a part share for glass (a film) or a colour that must stay legible.
+
+A world where something settles on everything (dust, snow, ash, grime) adds a top-level `weathering`
+(skills/surface-weathering): the coat lies thickest on level tops, thin on walls, none underneath, gathers in
+the seams of a role's photo, tints what shows through it and takes the shine away. No extra draw call. This
+file has none, so its town stays clean. Every key, with what house_style.gd falls back to:
+`weathering: { color: "{colors.x}", amount: 0.6, side: 0.15, crevice: 0.5, noise: 1.5, texture: "textures/x.jpg", textureSize: 3, clean: "^panel_[0-9]+$" }`
+- `amount` (0 to 1): how much of a level top it hides. Take it from a real deposition rate and the scene's age.
+- `side` (0 to 1): the share of that a wall takes; undersides take none. `crevice` (0 to 1): extra in seams.
+- `noise` (metres per patch, at `code` and `texture` quality); `texture` and `textureSize`: the coat's own photo
+  at `texture` quality, best one the ground already loads. `clean`: a node-name pattern whose meshes stay clean.
+- A `DESIGN.<state>.md` sets its own (a storm raises `amount` and `side`); the restyle on a theme switch carries it.
+- An official model's own textured material (a `keep` kit role) takes the coat too, over its own maps.
 
 ## Quality
 
@@ -184,7 +198,8 @@ hold still, and by the mesh's own position on meshes that move, so it travels wi
   `normalBias`. The near split is sized from the sun's elevation to hold a person's whole shadow
   (`lighting.shadowPad`, metres added for the camera, default 6): skills/shadows-and-grounding.
 - `glow` (0 for none, else its strength) and `lamps` (how many lamps shine at once, the nearest ones).
-- `detail`: `off`, `code` (each role's pattern) or `texture` (its photo, where it names one).
+- `detail`: `off`, `code` (each role's pattern) or `texture` (its photo, where it names one). The
+  `weathering` coat follows it: `off` is the plain coat, `code` adds its patches, `texture` its photo.
 
 ## Geometry & Proportions
 

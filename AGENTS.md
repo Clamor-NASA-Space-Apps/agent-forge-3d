@@ -98,6 +98,7 @@ This shortens the solution, never the reading: trace the flow the change touches
 | solids to touch: props, buildings, curbs | `world-collision` | `godot-physics` |
 | a walker or vehicle on loose ground (dust, sand, snow, mud) | `ground-contact-fx` | `godot-shaders` |
 | a world the player walks through: sound, ambient motion, a hero that breathes, weight; a playtest that says "static" or "silent" | `living-atmosphere` | `godot-audio`, `godot-animation` |
+| objects coated by what settles on them (dust, snow, ash, grime); "too clean" or "too shiny" | `surface-weathering` | `godot-shaders` |
 | a sun with shadows and a followed hero; a hero who must stand on the ground | `shadows-and-grounding` | `godot-3d-essentials` |
 | jumping, climbing, getting in or on | `contextual-traversal` | |
 | a follow camera | `third-person-camera` | `camera-systems` |
@@ -121,7 +122,8 @@ This shortens the solution, never the reading: trace the flow the change touches
 | `tools/web-check.mjs` | `node tools/web-check.mjs <project> [outDir] [--budget-mb 15]`: web export, game data against the budget, download size as a host sends it, engine start time and console errors in a browser, `web.png` |
 | `tools/serve-web.mjs` | `node tools/serve-web.mjs <project> [--port 5188]`: serves the web build for play: `http://localhost` here, https on the network for phones |
 | `godot/preview/` | Style variants in the engine: token files, probe models in a row, a 1.8 m person, one swatch sphere per material role, lamps from `lighting.lamp`. Keys 1 to 9 switch variant; capture with `--views three,low` |
-| `tools/style-check.mjs` | `node tools/style-check.mjs DESIGN.md [model.glb ...]`: DESIGN.md lint + 3D keys + per-model roles, colours, triangles, height. Exit 1 on drift |
+| `tools/style-check.mjs` | `node tools/style-check.mjs DESIGN.md [model.glb ...]`: DESIGN.md lint + 3D keys + per-model roles, colours, triangles, height, coplanar faces. Exit 1 on drift |
+| `tools/coplanar-check.mjs` | `node tools/coplanar-check.mjs model.glb [...]`: faces of different materials lying on each other (z-fighting), with where; skips undersides on the ground and faces buried in a solid. `style-check` runs it on every role-built model |
 | `tools/design-tokens.mjs` | `node tools/design-tokens.mjs DESIGN.md design.json`: resolved tokens for the engine |
 | `tools/kit-roles.mjs` | `node tools/kit-roles.mjs DESIGN.md models kit/*.glb --scale 8 --prefix building_`: atlas-textured kit models (Kenney 2.x) to one primitive per role, by `#hex: role` anchors in DESIGN.md `kit`. `--palette` lists the atlas colours to map, `--swap a=b` repaints one run; keeps skins and clips |
 | `tools/ref-palette.mjs` | `node tools/ref-palette.mjs design/refs [--thumbs dir] [--colors 8]`: an N-colour palette row per reference image, plus ≤1000 px copies to open big refs cheaply. Needs ffmpeg |
@@ -132,8 +134,8 @@ This shortens the solution, never the reading: trace the flow the change touches
 ## Forge rules
 - **Recipes:** one per asset, `forge/<name>.py`, 40–80 lines, run with `blender -b -P forge/<name>.py` (prints `FORGE_DONE <glb> <pngs>`). Import from `lib.py`. Materials by role only, bevels at the DESIGN.md default unless a part needs a sharper edge. Never re-implement a helper inside a recipe; a missing helper goes into `lib.py` once.
 - **Look:** bevel every hard-surface part (the cheapest "looks produced" win), `smooth()` round parts, reuse materials by name (fewer draw calls). Before calling a model done, open all 3 PNGs and compare them with 1–2 real photos.
-- `finish()` puts the origin on the ground, centred, so models drop straight onto build pads. **Previews render with Cycles CPU, 24 samples** (no GPU or display needed); don't switch to EEVEE.
-- **Env vars:** `FORGE_DESIGN` (default `examples/DESIGN.md`), `FORGE_OUT`, `FORGE_PREVIEWS`, `FORGE_NO_RENDER=1` (export only), `FORGE_PROBES=1` (lineup only).
+- **No face on a face:** faces of two parts in one plane flicker in stripes (z-fighting): a doorway cut the same size through a wall and its frame, a floor laid on a floor, a strip flush with its panel. Cut the hidden part bigger so its cut faces end inside a solid, or set a face 5 mm off. `style-check` fails on them (`tools/coplanar-check.mjs`).
+- `finish()` puts the origin on the ground, centred. **Previews render with Cycles CPU, 24 samples**; don't switch to EEVEE. **Env vars:** `FORGE_DESIGN` (default `examples/DESIGN.md`), `FORGE_OUT`, `FORGE_PREVIEWS`, `FORGE_NO_RENDER=1` (export only), `FORGE_PROBES=1` (lineup only).
 
 ## Gotchas
 - Blender `-b -P` exits 0 on a Python error unless you add `--python-exit-code 1`. Distro builds may log an OpenColorIO version error: renders still work in raw colour, so judge shape in previews and colour in the engine.

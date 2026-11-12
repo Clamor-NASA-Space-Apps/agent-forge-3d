@@ -4,9 +4,10 @@
 //
 // 1. Google's DESIGN.md linter, minus the warnings our documented 3D extension causes.
 // 2. The 3D keys: core material roles exist, every colour resolves, budgets are set, a role's `detail` and
-//    `lit` and the `quality` presets hold only values the house style knows.
+//    `lit` and `weathering`, the `weathering` coat and the `quality` presets hold only values the house style knows.
 // 3. Each GLB: material names are roles, colours and roughness match their token,
-//    triangles and height fit the budget of its class (file-name prefix, else "prop").
+//    triangles and height fit the budget of its class (file-name prefix, else "prop"),
+//    and, for a model built on roles (a forge recipe's), no faces lie on top of each other (coplanar-check.mjs).
 // Exit 1 on any failure.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -16,9 +17,10 @@ import { Logger, NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { MeshoptDecoder } from 'meshoptimizer';
 import { loadDesign } from './design-tokens.mjs';
+import { coplanar, describe } from './coplanar-check.mjs';
 
 const CORE = ['body', 'trim', 'accent', 'metal', 'glass', 'rock', 'light'];
-const EXT = ['materials', 'geometry', 'lighting', 'kit', 'quality'];
+const EXT = ['materials', 'geometry', 'lighting', 'kit', 'quality', 'weathering'];
 const TOL = 0.02;
 const [designFile, ...glbs] = process.argv.slice(2);
 if (!designFile) { console.error('usage: style-check.mjs DESIGN.md [model.glb ...]'); process.exit(2); }
@@ -62,6 +64,19 @@ for (const [n, m] of Object.entries(mats)) {
     if (t.texture && !fs.existsSync(path.join(path.dirname(designFile), t.texture))) fails.push(`materials.${n}.detail.texture: no file ${t.texture} beside ${path.basename(designFile)}`);
   }
   if (l && !(hex(l.color) && (l.share ?? 0.5) >= 0 && (l.share ?? 0.5) <= 1 && (l.period ?? 60) > 0)) fails.push(`materials.${n}.lit needs a #rrggbb color, a share of 0 to 1 and a period in seconds`);
+  if (m.weathering !== undefined && !(m.weathering >= 0 && m.weathering <= 1)) fails.push(`materials.${n}.weathering is the role's share of the coat, 0 to 1`);
+}
+// skills/surface-weathering: the coat house_style.gd lays over every role (surface.gdshader COAT)
+const w = d.weathering;
+if (w) {
+  const unit = v => v === undefined || (typeof v === 'number' && v >= 0 && v <= 1);
+  if (!hex(w.color)) fails.push(`weathering.color "${w.color}" is not a #rrggbb value`);
+  for (const k of ['amount', 'side', 'crevice']) if (!unit(w[k])) fails.push(`weathering.${k} is 0 to 1`);
+  if (!size(w.noise ?? 1) || !size(w.textureSize ?? 1)) fails.push('weathering: noise and textureSize are metres');
+  if (w.texture && !fs.existsSync(path.join(path.dirname(designFile), w.texture))) fails.push(`weathering.texture: no file ${w.texture} beside ${path.basename(designFile)}`);
+  if (w.clean) try { new RegExp(w.clean); } catch { fails.push(`weathering.clean "${w.clean}" is not a regular expression`); }
+  const known = ['color', 'amount', 'side', 'crevice', 'noise', 'texture', 'textureSize', 'clean'];
+  for (const k of Object.keys(w)) if (!known.includes(k)) fails.push(`weathering.${k} is not a key house_style.gd reads (${known.join(', ')})`);
 }
 if (d.quality) {
   // default_quality() answers low or high, and a settings screen offers all three
@@ -113,8 +128,10 @@ for (const file of glbs) {
   const name = path.basename(file, '.glb');
   const cls = budgets[name.split('_')[0]] ? name.split('_')[0] : 'prop';
   const b = budgets[cls] || {};
+  let ours = true;
   for (const m of doc.getRoot().listMaterials()) {
     const t = mats[m.getName()];
+    ours &&= !!t;
     if (!t) {
       const role = kitRole(m.getName());
       // mapped by name: the role's own values replace the file's at load, so there is nothing to compare.
@@ -133,6 +150,8 @@ for (const file of glbs) {
   for (const node of sceneNodes(doc)) for (const p of node.getMesh()?.listPrimitives() || []) {
     tris += (p.getIndices()?.getCount() ?? p.getAttribute('POSITION').getCount()) / 3;
   }
+  // a kit or official model's overlaps are not ours to fix: coplanar-check.mjs reports them on request
+  if (ours) for (const h of coplanar(doc)) fails.push(`${name}: ${describe(h)}`);
   const { min, max } = bounds(doc);
   const h = max[1] - min[1];
   if (b.tris && tris > b.tris) fails.push(`${name}: ${tris} triangles, ${cls} budget is ${b.tris}`);

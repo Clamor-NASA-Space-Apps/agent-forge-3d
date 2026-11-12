@@ -26,7 +26,7 @@ Each surface type (physics material or a `world.json` tag) carries a preset with
 2. **One trigger per foot.** Cast a ray down from the foot joint to find the surface type and the hit point, and spawn at the hit point, not at the hips.
 3. **Scale the effect with speed.** A slow step throws little or nothing; a run or a skid throws the most ("If the player is walking slow, maybe no particles", realtimevfx).
 4. **Velocity comes from the contact.**
-   - A boot throws grit forward and sideways at about the toe's speed as it lands or pushes off. Use the foot's own velocity (from the bone, or `inherit_velocity_ratio` when the emitter moves with the foot).
+   - A boot is nearly still once planted: it throws a little grit low and sideways as it lands, and backward as it pushes off. Use the foot's own velocity (from the bone, or `inherit_velocity_ratio` when the emitter moves with the foot), never the body's: grains thrown along the body's velocity flew ahead between the legs and toward a camera in front, and read as sparks (playtest). Without a bone velocity, a fraction of the body's velocity reversed is the push-off.
    - A wheel throws grit backward and up from behind the contact patch, at about the tread speed. That is a rooster tail. A fender stops most of it: on Apollo 17, driving without the fender extension "caused massive 'rooster tails'" (NASM). A vehicle model with fenders throws its grit low.
 
 ## 3. Grit: small, many, ballistic
@@ -50,6 +50,7 @@ Use the haze only where section 1 says it exists. In a vacuum, leave it out enti
 
 ## 6. Godot 4.7 Compatibility
 - **No per-particle emits.** `emit_particle()` "is only supported on the Forward+ and Mobile rendering methods, not Compatibility". So a contact uses a pooled one-shot `GPUParticles3D` (`one_shot`, `explosiveness = 1`) that is moved to the hit point and `restart()`ed. The oldest emitter in the pool is reused. Use `local_coords = false` so grains stay in the world, and hide spent emitters.
+- **A rolling wheel is a stream, not a contact.** One pooled one-shot per wheel print restarted a six-emitter pool twenty times a second, and every grain died a few frames old: nothing showed (measured). Give each trailing wheel one continuous emitter, moved to its contact patch every frame, with `amount_ratio` from the speed and the launch direction and speed set every frame (they only shape new grains). Its `lifetime` is the flight time at top speed; hide it one haze life after it stops. Give each its own `ParticleProcessMaterial`: the fade is that material's `color_ramp`, and one shared with the footstep pool kept the trail at the puffs' faint alpha, invisible (measured). Size the grit for the camera that watches it: a driving camera twice as far back needs grains twice as big for the same few pixels.
 - **No trails, and no SDF collision** (renderer feature table). Grit does not need them, because its lifetime ends at landing. `GPUParticlesCollisionHeightField3D` exists if grains must bounce, but it costs a heightmap render.
 - **Damping comes in two kinds. Pick the right one:**
   - The default mode subtracts a constant from the speed (`v -= damping * DELTA`). Once the speed reaches 0 the particle stops dead, and with `gravity = 0` it then **hangs in mid-air**. That is the knee-high puff.
