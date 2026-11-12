@@ -2,6 +2,7 @@
 // capture-view.mjs and feel-probe.mjs share it, so there is one way to launch the game under test.
 //
 //   GODOT          the engine binary (default `godot`)
+//   FORGE_TIMEOUT_S  seconds before a run is killed (default 300); a loaded machine needed 1,500 for a capture
 //   FORGE_DISPLAY  `window` draws on the real screen and GPU; the default is a hidden X server (xvfb-run)
 //                  with software OpenGL, so a check never puts a window in front of the user
 import { spawnSync } from 'node:child_process';
@@ -10,6 +11,7 @@ import path from 'node:path';
 
 export const GODOT = process.env.GODOT || 'godot';
 // what Godot prints for a script or engine error; a warning is not one
+const LIMIT = 1000 * Number(process.env.FORGE_TIMEOUT_S || 300);
 const ERROR = /^(USER )?(SCRIPT )?ERROR:|Parse Error:|Failed to load script/;
 
 // xvfb-run stops its X server only when its command ends: killed (a timeout), it left the server and the game
@@ -18,7 +20,7 @@ const ERROR = /^(USER )?(SCRIPT )?ERROR:|Parse Error:|Failed to load script/;
 const HIDDEN = 'trap "trap - TERM; kill -- -$$" TERM INT; xvfb-run "$@" & wait $!';
 
 export function godot(args, opts = {}) {
-  const r = spawnSync(GODOT, args, { encoding: 'utf8', timeout: 300000, maxBuffer: 64 << 20, ...opts });
+  const r = spawnSync(GODOT, args, { encoding: 'utf8', timeout: LIMIT, maxBuffer: 64 << 20, ...opts });
   if (r.error?.code === 'ENOENT') throw new Error(`no Godot at "${GODOT}": put godot on PATH or set GODOT`);
   return r;
 }
@@ -62,7 +64,7 @@ export function runJob(project, job, { scene, gameArgs = [], width = 640, height
   args.push('--', `--forge-job=${jobFile}`, ...gameArgs);
   const hidden = draws && process.env.FORGE_DISPLAY !== 'window';
   const r = hidden
-    ? spawnSync('setsid', ['sh', '-c', HIDDEN, 'sh', '-a', '-s', '-screen 0 1280x720x24', GODOT, '--display-driver', 'x11', ...args], { encoding: 'utf8', timeout: 300000, maxBuffer: 64 << 20 })
+    ? spawnSync('setsid', ['sh', '-c', HIDDEN, 'sh', '-a', '-s', '-screen 0 1280x720x24', GODOT, '--display-driver', 'x11', ...args], { encoding: 'utf8', timeout: LIMIT, maxBuffer: 64 << 20 })
     : godot(args);
   if (r.error?.code === 'ENOENT') throw new Error(hidden ? 'pictures need xvfb-run (or FORGE_DISPLAY=window to use the real screen)' : `no Godot at "${GODOT}"`);
   const log = `${r.stdout ?? ''}${r.stderr ?? ''}`;
