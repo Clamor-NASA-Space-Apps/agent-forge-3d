@@ -47,7 +47,8 @@ static func role(design: Dictionary, name: String, still := false, clean := fals
 	color.a = float(t.get("opacity", 1.0))
 	var glow := float(t.get("emissive", 0))
 	var m: Material
-	if still or moving_detail or _flat(design):
+	# glass too: the shader adds its reflections whole (surface.gdshader SEE), a StandardMaterial3D dims them by alpha
+	if still or moving_detail or _flat(design) or color.a < 1.0:
 		# forge models bake their normals, but kit models and built-in meshes only facet here
 		var s := ShaderMaterial.new()
 		s.set_shader_parameter("albedo", color)
@@ -61,9 +62,6 @@ static func role(design: Dictionary, name: String, still := false, clean := fals
 	else:
 		var s := StandardMaterial3D.new()
 		s.albedo_color = color
-		if color.a < 1.0:
-			s.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			s.cull_mode = BaseMaterial3D.CULL_DISABLED  # a pane is one sheet: seen from both sides
 		s.roughness = float(t.get("roughness", 0.6))
 		s.metallic = float(t.get("metalness", 0))
 		if glow > 0:

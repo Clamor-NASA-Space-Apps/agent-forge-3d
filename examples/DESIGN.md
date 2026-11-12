@@ -167,12 +167,17 @@ hold still, and by the mesh's own position on meshes that move, so it travels wi
   quality preset asks for it; `normal` (OpenGL convention) and `roughness` are the same set's other maps.
   Either one only shades the role's colour, light and dark, and the roughness map keeps the role's
   roughness as its average: the palette stays the palette.
-- `opacity` (0 to 1, default 1): below 1 the role is see-through glass, alpha blended. Blended surfaces sort
-  and cost more on a phone, so keep it to glass.
+- `opacity` (0 to 1, default 1): below 1 the role is see-through glass: the share of what lies behind one
+  surface that it blocks head-on. Its reflections come on top, whole and stronger at a grazing angle, so a low value
+  still reads as glass. Count the surfaces a look crosses: a pane with a thickness is two, a dome four, and 0.5 each
+  let 6% of the far side through a dome (a cream shell nobody could see into, in play). 0.1 to 0.2 is clear glass.
+  Blended surfaces sort and cost more on a phone, so keep it to glass.
 - `shadow: false`: the role only ever lies flat on the ground (a road, a lawn), so drawing it into the
   sun's shadow map would be work for nothing.
 - `lit: { color, emissive, share, period }`: panes of this role light up one by one, `share` of them
-  at any moment, each deciding again every `period` seconds. For windows at night.
+  at any moment, each deciding again every `period` seconds. For windows at night on buildings with no room
+  modelled behind them: it paints the pane, so it hides a room that is there (light the room instead). A pane is an
+  island of joined triangles, so a dome or any thick shell is one pane that lights and goes dark all at once.
 - `weathering` (0 to 1, default 1): the role's share of the coat below. 0 for lights, ground and rock that
   already are the coat's colour, plants indoors; a part share for glass (a film) or a colour that must stay legible.
 
