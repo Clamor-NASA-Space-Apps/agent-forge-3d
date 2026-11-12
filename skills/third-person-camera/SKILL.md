@@ -57,6 +57,12 @@ func _physics_process(delta: float) -> void:
     - once the run is steady, aim a little ahead along the velocity; drift the yaw behind the velocity (not the stick) only after the player has left the view alone, which matters most on a phone where the look thumb is busy;
     - field of view fixed, or changed slowly and by little.
 
+    How each part goes wrong (a camera built from the list above still read as "a drone"):
+    - **The damper is a critically damped spring, not a first-order ease.** `lerp(pos, want, 1 - exp(-rate * dt))` starts moving on the frame the hero does, and at a fast rate trails a walk by a few centimetres: the hero is pinned. A spring with its own velocity gathers speed, trails a steady pace by `2 v / ω`, and settles without overshoot ("critically-damped springs, to avoid acute speed-hitches", ABZU). Size `ω` so that lag at the walk is a visible fraction of the limit; the limit only bites at a hurry.
+    - **Auto-yaw reads the real velocity, never the stick, and turns by distance travelled** (a leash: rate × speed). Pushing into a wall then leaves the view alone (Nesky #23), and standing still never turns it. A reversing vehicle keeps its facing.
+    - **The lead turns the lens, it does not move the pivot.** Aim at `pivot + velocity × lead_time`, built and dropped slowly. A lead added to the pivot would carry the camera past the hero at every stop and then pull it back.
+    - **Leave the camera alone on jumps** (Nesky #45): the pivot's height follows the floor, eased more slowly than across.
+
 ## Checks
 `render_game_to_text()` reports `camInside` (is the lens inside or behind any static solid) and `heroScreen` (the hero's height as a share of the frame, from `unproject_position()` of its top and its feet). `camInside` must not reuse the arm's own cast: use a ray from the hero's head to the lens plus a sphere overlap at the lens. Put a band for `heroScreen` on the sheet and let the probe hold it (`measure: state`).
 - `camInside` is false and `heroScreen` is in its band: in the open, under the lowest crawl gap, inside every kind of container, and pressed into a corner with the camera turned toward the wall.
@@ -71,5 +77,7 @@ func _physics_process(delta: float) -> void:
 - Eric Undersander, accurate collision zoom (cast the near plane, not a ray): https://gamedeveloper.com/programming/accurate-collision-zoom-for-cameras
 - Opsive Object Fader (fade the character by camera distance): https://opsive.com/support/documentation/ultimate-character-controller/camera/object-fader/
 - Third person and de-occlusion (sphere cast, ease-out, hysteresis): https://www.strayspark.studio/docs/godot-camera-system/third-person-and-deocclusion
-- Little Polygon, third-person camera tech breakdown (damping, framing): https://blog.littlepolygon.com/posts/cameras
+- Little Polygon, third-person camera tech breakdown (damping, framing, the yaw leash): https://blog.littlepolygon.com/posts/cameras
+- Max Kaufmann, Camera Control in ABZU (critically damped springs, following "predicatively rather than lagging behind"): https://giantsquidstudios.com/Camera-Control-in-ABZU
+- Nesky's talk in full (#23 auto-rotation from the real velocity, #40 smoothing with a limit and a lead, #45 jumps): https://habr.com/en/post/272401 and https://habr.com/en/articles/272825
 - Godot class reference, `SpringArm3D`: https://raw.githubusercontent.com/godotengine/godot-docs/4.7/classes/class_springarm3d.rst
