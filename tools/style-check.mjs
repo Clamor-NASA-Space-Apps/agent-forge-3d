@@ -117,8 +117,10 @@ for (const file of glbs) {
     const t = mats[m.getName()];
     if (!t) {
       const role = kitRole(m.getName());
-      // mapped by name: the role's own values replace the file's at load, so there is nothing to compare
-      if (!role || !mats[role]) fails.push(`${name}: material "${m.getName()}" is not a DESIGN.md role or a kit name`);
+      // mapped by name: the role's own values replace the file's at load, so there is nothing to compare.
+      // `keep` keeps an official model's own photo textures (house_style.gd _pick): only a textured material may
+      if (role === 'keep' && !m.getBaseColorTexture()) fails.push(`${name}: material "${m.getName()}" is kept but has no texture to keep`);
+      else if (role !== 'keep' && (!role || !mats[role])) fails.push(`${name}: material "${m.getName()}" is not a DESIGN.md role or a kit name`);
       continue;
     }
     const off = Math.max(...lin(t.color).map((v, i) => Math.abs(v - m.getBaseColorFactor()[i])));

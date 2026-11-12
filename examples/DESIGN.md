@@ -201,7 +201,10 @@ Light fog in the sky colour from 40 to 160 m. The same rig lights the forge prev
 
 Optional `lighting` keys: `horizon` (the sky's colour at the horizon; else `sky`), `ambientColor` (the
 shade's colour; a cool one keeps shadows from going muddy), `sunDisc` (the sun drawn in the sky, degrees
-across, with a haze about ten times wider; 0 or absent draws none). `fog` also takes `density` (the most
+across, with a haze about ten times wider; 0 or absent draws none), `halo` (that haze: `color`, the sun's by
+default; `size` in degrees; `strength`, 0.7 by default), `twilight` (a glow along the horizon toward `azimuth`,
+the sun's by default, fading over `height` degrees: `color`, `strength`; it needs no disc, so a night can keep
+the glow where the sun went down). `fog` also takes `density` (the most
 fog anything gets, at `far`: 1 by default; a far hill wants 0.4 to 0.7), `curve` (above 1 keeps the
 near ground clear), `sky` (how much fog covers the sky: low keeps its gradient) and `sun` (fog lit when
 you look toward the sun).
@@ -210,7 +213,8 @@ you look toward the sun).
 
 Models from kits keep their shapes and lose their colours. `kit` maps a material-name pattern to a
 role; anything unmatched takes the nearest palette colour and logs a warning to fix the map.
-Textured kit materials are kept as they are, with a warning.
+Textured kit materials are kept as they are, with a warning; map one to `keep` when its textures are the point (an
+official scan or model), which keeps it with no warning.
 
 ## Do's and Don'ts
 
