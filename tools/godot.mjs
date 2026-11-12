@@ -12,6 +12,11 @@ export const GODOT = process.env.GODOT || 'godot';
 // what Godot prints for a script or engine error; a warning is not one
 const ERROR = /^(USER )?(SCRIPT )?ERROR:|Parse Error:|Failed to load script/;
 
+// xvfb-run stops its X server only when its command ends: killed (a timeout), it left the server and the game
+// running, and a night of captures leaked 45 servers and a game at 85% CPU (13 Nov). In its own session, a TERM
+// takes the whole group down: xvfb-run, its server and the game.
+const HIDDEN = 'trap "trap - TERM; kill -- -$$" TERM INT; xvfb-run "$@" & wait $!';
+
 export function godot(args, opts = {}) {
   const r = spawnSync(GODOT, args, { encoding: 'utf8', timeout: 300000, maxBuffer: 64 << 20, ...opts });
   if (r.error?.code === 'ENOENT') throw new Error(`no Godot at "${GODOT}": put godot on PATH or set GODOT`);
@@ -57,7 +62,7 @@ export function runJob(project, job, { scene, gameArgs = [], width = 640, height
   args.push('--', `--forge-job=${jobFile}`, ...gameArgs);
   const hidden = draws && process.env.FORGE_DISPLAY !== 'window';
   const r = hidden
-    ? spawnSync('xvfb-run', ['-a', '-s', '-screen 0 1280x720x24', GODOT, '--display-driver', 'x11', ...args], { encoding: 'utf8', timeout: 300000, maxBuffer: 64 << 20 })
+    ? spawnSync('setsid', ['sh', '-c', HIDDEN, 'sh', '-a', '-s', '-screen 0 1280x720x24', GODOT, '--display-driver', 'x11', ...args], { encoding: 'utf8', timeout: 300000, maxBuffer: 64 << 20 })
     : godot(args);
   if (r.error?.code === 'ENOENT') throw new Error(hidden ? 'pictures need xvfb-run (or FORGE_DISPLAY=window to use the real screen)' : `no Godot at "${GODOT}"`);
   const log = `${r.stdout ?? ''}${r.stderr ?? ''}`;
