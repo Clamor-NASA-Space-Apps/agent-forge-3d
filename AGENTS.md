@@ -98,6 +98,7 @@ This shortens the solution, never the reading: trace the flow the change touches
 | solids to touch: props, buildings, curbs | `world-collision` | `godot-physics` |
 | a walker or vehicle on loose ground (dust, sand, snow, mud) | `ground-contact-fx` | `godot-shaders` |
 | a world the player walks through: sound, ambient motion, a hero that breathes, weight; a playtest that says "static" or "silent" | `living-atmosphere` | `godot-audio`, `godot-animation` |
+| a day and night cycle, a moving sun, a clock knob; "the sky jumps", "shadows swim", "the night is a chore" | `day-cycle` | `godot-shaders`, `godot-3d-essentials` |
 | objects coated by what settles on them (dust, snow, ash, grime); "too clean" or "too shiny" | `surface-weathering` | `godot-shaders` |
 | a sun with shadows and a followed hero; a hero who must stand on the ground | `shadows-and-grounding` | `godot-3d-essentials` |
 | jumping, climbing, getting in or on | `contextual-traversal` | |
