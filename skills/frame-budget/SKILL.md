@@ -105,6 +105,11 @@ choice, profile of <date>".
   profile cold (`MESA_SHADER_CACHE_DISABLE=true`, the app's `user://shader_cache` moved away) or in the web build.
 - **With vsync, count drops, not long frames.** A 17.5 to 20 ms frame followed by a 15 ms one is the compositor's
   timing, not a miss; a drop is a frame over 1.5 refreshes, or a pair that sums past two.
+- **Pacing is the platform's, not the game's.** On Wayland (Godot 4.7.2, GNOME) V-Sync held a game that drew 100
+  to 120 fps with it off to 30 to 38, and the compositor never shows a torn frame, so `HouseStyle` turns V-Sync off
+  there and caps at the screen's rate; on X11 and Windows V-Sync off tears. A web build draws on the browser's
+  animation frame whatever the setting, so a phone that cannot hold its screen's rate (90 Hz is common) swings between
+  rates: offer a frame cap that divides the refresh (30 or 45 on 90 Hz) and measure which feels steadier.
 - **Weigh a sky or quality switch:** each one recompiles most variants (no sun at night, new shadow splits), 3 to 5 s
   on a laptop's web build. Switch behind a cover, and in a game, at a moment a fade belongs (a new sol).
 
