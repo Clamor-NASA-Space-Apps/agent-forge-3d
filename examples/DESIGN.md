@@ -224,6 +224,17 @@ fog anything gets, at `far`: 1 by default; a far hill wants 0.4 to 0.7), `curve`
 near ground clear), `sky` (how much fog covers the sky: low keeps its gradient) and `sun` (fog lit when
 you look toward the sun).
 
+`celestial` draws a planet's real night sky in the same sky shader, at no extra draw call: stars from a catalogue
+and a Milky Way map in celestial coordinates (`stars`: `map` and `list` baked by `tools/sky-stars.mjs`, paths from the
+project; `brightness`; `milkyWay` and `milkyColor`), turned to the local horizon about the planet's own `pole` ([RA,
+Dec], degrees) at `latitude`, one turn per sidereal `day` (seconds) times `timeScale`; `planets` as points (`ra`,
+`dec`, `mag`, `color`); up to two `moons` (`radius` and `orbit` in km, the planet's `radius` too, `period` in seconds,
+`start` degrees east of the meridian along the orbit) as discs lit by the real sun (`sun`: [RA, Dec] on the chosen date,
+`hour`: the scene's local solar hour), dark in the planet's shadow. `tau` (the dust's optical depth) dims everything
+toward the horizon. Stars come out with the sun's real elevation at that hour. `tools/sky-stars.mjs --date` prints
+the sun's and the planets' places for a date. The sky turns on a global shader clock from the rig, so nothing re-renders
+the reflection cubemap.
+
 ## Kit adaptation
 
 Models from kits keep their shapes and lose their colours. `kit` maps a material-name pattern to a

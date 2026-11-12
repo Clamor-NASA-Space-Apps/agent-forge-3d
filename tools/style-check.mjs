@@ -52,7 +52,12 @@ const QUALITY = {
   shadowMap: v => [256, 512, 1024, 2048, 4096].includes(v), glow: v => typeof v === 'number' && v >= 0,
   lamps: v => Number.isInteger(v) && v >= 0, detail: v => ['off', 'code', 'texture'].includes(v),
   shadowRange: v => typeof v === 'number' && v > 0, shadowFilter: v => [0, 1, 2, 3, 4, 5].includes(v),
-  normalBias: v => typeof v === 'number' && v >= 0,
+  normalBias: v => typeof v === 'number' && v >= 0, pixels: v => typeof v === 'number' && v >= 0,
+  aniso: v => [0, 1, 2, 3, 4].includes(v), fog: v => typeof v === 'boolean', ssao: v => typeof v === 'boolean',
+  vsync: v => typeof v === 'boolean', maxFps: v => Number.isInteger(v) && v >= 0,
+  // read by the game's own restyle, not by set_quality() (house_style.gd KNOBS marks them `game`)
+  trail: v => [256, 512, 1024, 2048, 4096].includes(v), particles: v => typeof v === 'number' && v >= 0 && v <= 1,
+  ground: v => ['flat', 'cheap', 'full'].includes(v),
 };
 const hex = v => /^#[0-9a-f]{6}$/i.test(v), size = v => [v].flat().every(n => typeof n === 'number' && n > 0) && [v].flat().length <= 2;
 for (const [n, m] of Object.entries(mats)) {
@@ -77,6 +82,24 @@ if (w) {
   if (w.clean) try { new RegExp(w.clean); } catch { fails.push(`weathering.clean "${w.clean}" is not a regular expression`); }
   const known = ['color', 'amount', 'side', 'crevice', 'noise', 'texture', 'textureSize', 'clean'];
   for (const k of Object.keys(w)) if (!known.includes(k)) fails.push(`weathering.${k} is not a key house_style.gd reads (${known.join(', ')})`);
+}
+// a planet's night sky (house_style.gd _celestial(), sky.gdshader): a typo there turned the sky silently empty
+const C = d.lighting?.celestial;
+if (C) {
+  const num = v => typeof v === 'number' && Number.isFinite(v);
+  const radec = v => Array.isArray(v) && v.length === 2 && v[0] >= 0 && v[0] < 360 && Math.abs(v[1]) <= 90;
+  if (!radec(C.pole) || !radec(C.sun)) fails.push('lighting.celestial: pole and sun are [RA 0..360, Dec -90..90] in degrees');
+  if (!(Math.abs(C.latitude) <= 90)) fails.push('lighting.celestial.latitude is degrees, -90 to 90');
+  for (const k of ['radius', 'day']) if (!(num(C[k]) && C[k] > 0)) fails.push(`lighting.celestial.${k} is a positive number (km, seconds)`);
+  if (!(C.hour >= 0 && C.hour < 24)) fails.push('lighting.celestial.hour is the local solar hour, 0 to 24');
+  for (const k of ['timeScale', 'tau']) if (C[k] !== undefined && !(num(C[k]) && C[k] >= 0)) fails.push(`lighting.celestial.${k} is a number of 0 or more`);
+  for (const k of ['map', 'list']) if (C.stars?.[k] && !fs.existsSync(path.join(path.dirname(designFile), C.stars[k]))) fails.push(`lighting.celestial.stars.${k}: no file ${C.stars[k]} beside ${path.basename(designFile)} (tools/sky-stars.mjs bakes it)`);
+  if (C.stars?.milkyColor && !hex(C.stars.milkyColor)) fails.push('lighting.celestial.stars.milkyColor is a #rrggbb value');
+  if ((C.planets ?? []).length > 4 || (C.moons ?? []).length > 2) fails.push('lighting.celestial: the sky draws at most 4 planets and 2 moons');
+  for (const p of C.planets ?? []) if (!(radec([p.ra, p.dec]) && num(p.mag) && hex(p.color ?? '#ffffff'))) fails.push(`lighting.celestial.planets ${p.name ?? ''}: ra, dec, mag and a #rrggbb color`);
+  for (const m of C.moons ?? []) if (!(['radius', 'orbit', 'period'].every(k => num(m[k]) && m[k] > 0) && num(m.start) && hex(m.color ?? '#808080'))) fails.push(`lighting.celestial.moons ${m.name ?? ''}: radius, orbit (km), period (s) above 0, start (deg) and a #rrggbb color`);
+  const known = ['pole', 'latitude', 'radius', 'day', 'sun', 'hour', 'timeScale', 'tau', 'stars', 'planets', 'moons'];
+  for (const k of Object.keys(C)) if (!known.includes(k)) fails.push(`lighting.celestial.${k} is not a key house_style.gd reads (${known.join(', ')})`);
 }
 if (d.quality) {
   // default_quality() answers low or high, and a settings screen offers all three

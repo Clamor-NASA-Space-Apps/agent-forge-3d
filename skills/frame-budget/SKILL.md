@@ -92,6 +92,22 @@ material, particle `amount_ratio`, visibility-range ends, lamps lit, reflection 
 The weakest device the user named gets the lowest preset by default. Every value carries its source or "our
 choice, profile of <date>".
 
+## Lessons from the first profile (12 Nov 2026, a Compatibility web game)
+- **Warm only what is used.** `HouseStyle.warm()` draws each material once per variant its instances use (render
+  layers a probe reflects or not, instanced or not, casting or not, in a lamp's reach when the design has lamps).
+  Drawing every material four times added 6 s to a web load; drawing only the used variants took 2 s of that back.
+- **A paint map on the GPU, the CPU still the truth.** Stamp on an `Image` with wrap-around addressing, then copy only
+  the changed 64 px tiles into a `SubViewport` (`UPDATE_ONCE`, `CLEAR_MODE_NEVER`) the shader samples with
+  `repeat_enable`. Uploads fell from 4 MB per print to a few kB; read the target back once to prove it equals the image.
+- **A particle emitter made at runtime can compile on its first emission** although an identical one made at load was
+  drawn: warm it by making and running one after load, behind the cover (measured, cause not found).
+- **Native caches hide compiles.** After one run, Godot's and Mesa's shader caches make native profiles look clean:
+  profile cold (`MESA_SHADER_CACHE_DISABLE=true`, the app's `user://shader_cache` moved away) or in the web build.
+- **With vsync, count drops, not long frames.** A 17.5 to 20 ms frame followed by a 15 ms one is the compositor's
+  timing, not a miss; a drop is a frame over 1.5 refreshes, or a pair that sums past two.
+- **Weigh a sky or quality switch:** each one recompiles most variants (no sun at night, new shadow splits), 3 to 5 s
+  on a laptop's web build. Switch behind a cover, and in a game, at a moment a fade belongs (a new sol).
+
 ## Checks
 1. **Scripted route profile.** A test drives the same route every run (walk, run, drive, every interaction, every
    sky or weather switch, a quality switch) on a real display, vsync off, and logs one row per frame: frame time,
