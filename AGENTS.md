@@ -104,6 +104,7 @@ This shortens the solution, never the reading: trace the flow the change touches
 | a follow camera | `third-person-camera` | `camera-systems` |
 | traffic, crowds, chasers | `living-world` | `game-ai` |
 | a gate | `game-feel-gate` | `performance-optimization`, `godot-export` |
+| a weakest device, quality presets, stutter or low fps | `frame-budget` | `performance-optimization`, `godot-export` |
 | scenes, prefabs, signals, data files | | `godot-nodes-scenes`, `godot-signals-groups`, `godot-resources` |
 | sky, light, materials, effects | | `godot-3d-essentials`, `godot-shaders` |
 | HUD and menus, sound | | `godot-ui-control`, `godot-audio` |
