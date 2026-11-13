@@ -11,6 +11,11 @@ Rule: **the hero's whole shadow lives in the sharpest split, every texel size is
 
 ## 1. Why a low sun tears
 - **Split seam.** With 2 splits the first one ends at `split_1 × max_distance` (default 0.1 × 60 = 6 m). A follow camera stands about 4 m back, so the hero's shadow (length `height / tan(elevation)`, 8.9 m for 1.89 m at 12 degrees) crosses the seam. The far part is drawn with texels ten times bigger, and the cut looks like scissors (measured).
+- **A moving sun must not shrink the near split.** Sizing it to the hero's shadow alone is right for a low sun and
+  wrong for a high one: at 48 degrees the formula gave split_1 0.13, and the ground from 7.6 to 14.5 m fell from the
+  near split's 11.6 cm texels into the far split's 45 cm ones (the table below): sawtoothed shadows on a floor in
+  view, and the seam crossing long shadows as a straight-edged step (playtest, 2026). Size it for the lower of the
+  light's elevation and the elevation the look was approved under, so it only ever grows as the sun drops.
 - **Texel size, not map size, is what you see.** Godot fits each split with a sphere around its frustum slice: `r ≈ sqrt((aspect² + 1)·(far·tan(fov/2))² + ((far − near)/2)²)`, texel `2r / S` (renderer_scene_cull.cpp). With 2 splits each split gets an `S × S/2` strip, so the light's up axis has texels of `4r / S`, and that axis lies along the sun on the ground, stretched again by `1 / sin(elevation)`.
 - **Crawl.** Still shadows are stable: every renderer snaps each split to its texel grid (shared cull code: "This trick here is what stabilizes the shadow"). A moving caster cannot be snapped, so its edges re-rasterise every frame; the bigger the texel the bigger the hop. A wider aspect (a phone at 20:9) grows `r` too.
 - **Bias.** Too little: acne (ripples on flat tops facing a grazing sun). Too much: the shadow leaves the feet (peter-panning). Normal bias is in texels (`normal_bias × 2r/S`), so the same value lifts four times more on a map with four times bigger texels.

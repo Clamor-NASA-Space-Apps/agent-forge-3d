@@ -72,20 +72,26 @@ frost that takes a whole real hour to go.
   sun's glow); weather clouds keep a real wind speed, or the "fast forward" complaint above follows: "how fast the
   clouds, sun, moon and orbiting planet / moon all move in the sky".
 
-## 4. The sun in smoothed bursts, not every frame
+## 4. The light turns with the sun, every frame; measure before stepping it
 At a 20 minute day the sun turns 0.3 degrees a second, and a person's shadow at 10 degrees of sun elevation grows
 about a metre for each degree (`L = h / tan(e)`). Long shadows visibly crawl at dawn and dusk whatever you do; that
-is the price of a fast day and players accept it in every game in the table. What they should not see is the shadow
-map's texel grid turning with the light: Godot stabilises a directional shadow only against camera movement, by
-snapping the projection to texel steps in the light's own axes (`renderer_scene_cull.cpp`, 4.7.2), so a turning
-light drags the grid across every edge. A Godot maintainer: "many AAA games don't rotate the sunlight continuously,
-but rotate it by small steps every few seconds instead (with some interpolation occurring between each step)"
-(Calinou, godotengine/godot issue 90175, 2024).
-- Keep the true sun angle every frame in code; move the light to it in a short eased burst whenever it is a set
-  angle away. Pick the step and burst time on the weakest preset's shadow map, by filming an edge (check 3).
+is the price of a fast day and players accept it in every game in the table. The shadow map's texel grid also turns
+with the light: Godot stabilises a directional shadow only against camera movement, by snapping the projection to
+texel steps in the light's own axes (`renderer_scene_cull.cpp`, 4.7.2). A Godot maintainer: "many AAA games don't
+rotate the sunlight continuously, but rotate it by small steps every few seconds instead (with some interpolation
+occurring between each step)" (Calinou, godotengine/godot issue 90175, 2024). That advice is for a sun that hardly
+moves. On a fast day, steps fail the player instead: 1 degree steps eased over 0.8 s every 3.3 s read as shadows
+that "move a little, wait, then teleport fast-forward", while the sun disc beside them glided (playtest, 2026).
+- Turn the light every frame, from the same hour that places the disc, so the shadows move as the sun does. Take its
+  colour and energy (and anything solved from them) at the look's own rate.
+- Then measure the shimmer, do not assume it: a still camera on shadow edges, a few seconds of frames, and the share
+  of pixels whose brightness reverses twice a second or more, continuous against stepped against the clock stopped
+  (the stopped run is the floor: animated things flicker too). Measured: 2.96% continuous against 3.52% stepped on a
+  4096 map with two splits; 2.17% against 1.69% (floor 1.64%) on a 1024 map with one split, the excess on one long
+  thin shadow line. Step only a preset where continuous is clearly worse, and treat the edge first (filter, bias).
 - Directional shadows are drawn every frame in Godot 4.7 whether the light moved or not (the shadow loop in
-  `renderer_scene_cull.cpp`), so bursts buy steadiness, not frame time, in this engine.
-- Low sun is where it shows: below about 15 degrees, shrink the step or slow the burst.
+  `renderer_scene_cull.cpp`), so stepping buys steadiness, never frame time. A light that moves does redraw the
+  sky's reflections, though (section 5): leave it untouched while the clock stands.
 
 ## 5. The sky: never a material parameter per frame
 - **A sky material parameter changed every frame re-renders the sky's reflection cubemap**: the GLES3 renderer sets
@@ -94,8 +100,9 @@ but rotate it by small steps every few seconds instead (with some interpolation 
   turn) is a **global shader uniform** set from code, which leaves the cubemap alone (factory gotcha, `house_style.gd`
   SkyClock).
 - **The sun is the exception you cannot hide by globals**: a sky shader that reads `LIGHT0_*` marks the cubemap dirty
-  whenever the light's direction, energy or colour changes (same file, the directional light buffer check). Either
-  accept a refresh per sun burst (section 4 makes those rare), or set the light's `sky_mode` to
+  whenever the light's direction, energy or colour changes (same file, the directional light buffer check), and so
+  does fog sun scatter over 0.001. A light turning every frame (section 4) keeps an incremental cubemap refresh
+  running all day: measure its cost on the weakest device. Either accept it, or set the light's `sky_mode` to
   `SKY_MODE_LIGHT_ONLY` ("the light will not be visible from sky shaders", class reference) and draw the disc from a
   global uniform. Check that fog sun scatter still shows on the sky in that mode before relying on it.
 - **Refresh reflections in steps you choose.** A stale cubemap shows a noon sky in a metal surface at night. Bump one
@@ -107,15 +114,40 @@ but rotate it by small steps every few seconds instead (with some interpolation 
   steps (`HouseStyle.warm()` knows how; a dirty probe draws only once a camera sees it).
 - **Ambient and fog are cheap per frame** when ambient is a colour (`AMBIENT_SOURCE_COLOR`): they are environment
   values, not sky uniforms. Ambient taken from the sky would follow the stale cubemap instead.
+- **`SKY_MODE_LIGHT_ONLY` also takes the light out of the sky's fog sun scatter**: the GLES3 sky pass fills its light
+  buffer only with lights not in that mode, and the scatter reads that buffer (`_setup_sky`, `sky.glsl`, 4.7.2). Keep
+  the light in the sky and let the bursts set the refresh rate; draw the disc from a global sun direction instead of
+  `LIGHT0_DIRECTION`, so it stays on the true sun whatever the light is doing (next section).
+- **Anything solved from the light, solve once a burst, not per frame**: an energy correction searched over a tone curve
+  (the Compatibility renderer's shadowed-light fix, `house_style.gd _shadowed()`) cost about 0.15 ms of GDScript a call
+  on a laptop. Solve both ends of a burst and interpolate between them.
 
 ## 6. Dusk: lamps, and night that stays readable
+- **Work lights and their glowing faces follow the dark; status lights do not.** NASA's Artemis lighting brief plans
+  worksite lamps for darkness and shadow, and "after surface lamps are installed to provide general ambient lighting,
+  the crew can conserve power by only using the suit lamps when needed" (NASA-STD-3001 Technical Brief, "Artemis
+  Lighting Considerations", 2023). A floodlight face glowing at noon reads as a mistake (playtest). Fade the lamp's light and its emissive
+  face together, to a glimmer rather than to nothing (the variant thresholds above). Blinking status lights keep
+  blinking day and night on a material copy of their own.
 - **Lamps switch on from the clock with hysteresis** (on below one sun elevation, off above a higher one), staggered
   a little so a base does not flip like a switchboard. Each additive light is a shader variant: warm the lamps-on look
   at load even in daytime (`frame-budget` section 1), or the first dusk on the web hitches.
+- **Never cross a threshold the renderer specialises on.** The Compatibility renderer picks a shader variant per
+  draw from the state of the moment: no directional light (`DISABLE_LIGHT_DIRECTIONAL`), fog sun scatter at or under
+  0.001 (`USE_SUN_SCATTER` off), no omni light reaching the object (`DISABLE_LIGHT_OMNI`), how many probes hold it
+  (`rasterizer_scene_gles3.cpp`, 4.7.2). A cycle that fades the sun to 0, the scatter to 0 at night, or hides the
+  lamps by day crosses them at the first dusk and compiles every material in play: 0.4 to 7 s hitches on a cold
+  shader cache (measured; a warm cache hides them, so profile cold, `frame-budget`). Floor the sun's energy and the
+  scatter a hair above zero, and leave the lamps visible at a glimmer by day, so load-time warming covers every frame.
 - **Never pitch black.** "Night should be dark, but it shouldn't be pitch black" (Subnautica, Steam, 2021, answering
   a player with no gamma setting). Keep a cool ambient floor at night, lamps that light where the player works, and a
   sky glow; measure a pixel of the darkest ground under the darkest key on the weakest device, under the real tone
   curve (factory gotcha on ACES black).
+- **One directional light, two jobs: hand it over in the dark.** A sun under the horizon lights undersides, and a
+  night key usually lights the scene from a fill high in the sky. Fade the sun's light out over a few degrees around
+  an elevation just below the horizon (-2 degrees here), move the light to the night fill's direction while its
+  energy is zero, and fade the fill in by the night key's share. The test: sample the whole day and count the
+  hand-overs (one each way) and the biggest step in brightness.
 - **The hour the session starts is a choice.** Start shortly after sunrise so the first minutes are in light and the
   first sunset arrives inside the first session; never start at night.
 
@@ -124,8 +156,11 @@ Dust, snow, ash, frost: what builds up over the clock is a **world value, not a 
 "storm" key vanishes the moment the storm key blends out, which is wrong. Mars solar panels lose "0.2% per Sol" typically and get it back only in occasional wind "cleaning
 events", a "sawtooth" (Lorenz 2021); where no whirlwinds came, InSight's output fell from about 5,000 to 500 Wh a sol
 and stayed down (NASA 2022). Settled dust is state (`surface-weathering`). Keep the coat as its own number (a global
-uniform the surface shader reads), raised by the weather and lowered only by a cleaning event, with a per-object
-override for what has been cleaned. Its rate per game hour comes from a source; whether it changes any rule (power,
+uniform the surface shader reads, or one shader parameter set on every coated material when it moves by a visible
+step), raised by the weather and lowered only by a cleaning event, with a per-object override for what has been
+cleaned. Objects drawn as one MultiMesh (a row of panels) carry the override as instance custom data:
+`use_custom_data` must be set before `instance_count`, and a headless run (the dummy renderer) reads it back as zero,
+so a test checks what was sent. Its rate per game hour comes from a source; whether it changes any rule (power,
 health) is the rules lane's decision.
 
 ## Checks
@@ -135,12 +170,15 @@ health) is the rules lane's decision.
 2. **No per-frame sky churn:** every sky material parameter set and every sun burst goes through one function that
    counts them; run 30 s at the shortest `day_minutes` and assert the count stays at the planned steps, not one a frame.
 3. **Shadow film:** `feel-probe --film` of a fixed camera on a shadow edge at sun elevation 10 degrees, on the weakest
-   preset, continuous turning against bursts. Pick the burst settings from the film.
+   preset, continuous turning against bursts, and the share of flickering pixels against a stopped clock.
 4. **Timelapse pictures:** capture the default view at the key hours and at the midpoints between them; no midpoint
    may be darker or more saturated than both keys around it.
 5. **The darkest pixel:** at the night key, the darkest ground pixel in the play view is above black on the weakest
    device's capture.
-6. **The user plays one whole day** in the web build on the weakest device, at the chosen `day_minutes`, and says
+6. **The clock's own cost**: time its work per frame with `Time.get_ticks_usec()` and judge the median of the frames
+   that do a look update. On a loaded machine the same call repeated 2,000 times had a median of 175 us and a 99th
+   percentile of 11 ms: the tail is the scheduler, not the code.
+7. **The user plays one whole day** in the web build on the weakest device, at the chosen `day_minutes`, and says
    whether the day felt too fast, too slow, and whether the night was a chore.
 
 ## Sources
@@ -165,5 +203,7 @@ health) is the rules lane's decision.
   `class_reflectionprobe.rst`, `class_projectsettings.rst` at https://raw.githubusercontent.com/godotengine/godot-docs/4.7/classes/
 - Lorenz et al. 2021, dust on Mars solar arrays (HAL hal-03369920); NASA, InSight power 2022 (PIA25284)
 - Newman et al. 2019, convective vortices at Gale, JGR Planets, doi:10.1029/2019JE006082
+- NASA-STD-3001 Technical Brief, "Artemis Lighting Considerations" (OCHMO-TB-001, 2023):
+  https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-001-artemis-lighting-considerations.pdf
 - Microsoft, "Common Techniques to Improve Shadow Depth Maps" (texel snapping, given as the fix for a moving camera):
   https://learn.microsoft.com/en-us/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps
