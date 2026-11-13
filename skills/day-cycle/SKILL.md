@@ -118,6 +118,12 @@ that "move a little, wait, then teleport fast-forward", while the sun disc besid
   buffer only with lights not in that mode, and the scatter reads that buffer (`_setup_sky`, `sky.glsl`, 4.7.2). Keep
   the light in the sky and let the bursts set the refresh rate; draw the disc from a global sun direction instead of
   `LIGHT0_DIRECTION`, so it stays on the true sun whatever the light is doing (next section).
+- **The disc's direction is a global set every frame the clock moves**, not with the rest of the look at a few hertz:
+  in a fast-forward the light and the stars moved smoothly while the disc stepped like a slideshow (one playtest).
+- **Let the player see the first sunrise.** A game that opens at "dawn" after the sun has cleared the skyline never
+  shows it rise. Find the skyline's elevation at the sun's rise azimuth (the far terrain, not the flat horizon), open
+  the scene a little before that, and let the camera shot that turns toward the sun own the clock while it plays,
+  so it breaks over the ridge on screen however slowly the player got there.
 - **Anything solved from the light, solve once a burst, not per frame**: an energy correction searched over a tone curve
   (the Compatibility renderer's shadowed-light fix, `house_style.gd _shadowed()`) cost about 0.15 ms of GDScript a call
   on a laptop. Solve both ends of a burst and interpolate between them.
