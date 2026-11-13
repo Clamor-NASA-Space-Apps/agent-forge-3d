@@ -1,6 +1,6 @@
 # AGENTS.md: agent-forge-3d
 
-`CLAUDE.md` is a symlink to this file. This repo will be **public**, so keep it generic: no game-, event- or team-specific content, data or assets.
+`CLAUDE.md` holds one line, `@AGENTS.md`, which loads this file (a real file, not a symlink, so it works on Windows). This repo will be **public**, so keep it generic: no game-, event- or team-specific content, data or assets.
 
 ## What it is
 A factory where an AI agent builds 3D games in Godot without "seeing" 3D. Open `claude` in this folder and say what to build.
