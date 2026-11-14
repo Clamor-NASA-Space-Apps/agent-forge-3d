@@ -1,0 +1,23 @@
+---
+name: guided-tutorial
+description: "Tutorials, story beats and cinematic shots in a 3D game (Godot 4.7) that never trap, blind or confuse the player: input is never taken away except during a shot that is playing, every beat has a place it needs the hero to be and leads them there, shots play only where their frame makes sense, the end of every task and every day is said out loud, and a bot plays the whole flow with real input from the start pose. Use when the plan has an opening, a tutorial, a guide character, story beats, cinematics, or a day with tasks, before the lane that writes them is briefed."
+---
+
+# Guided tutorial
+
+A scripted flow passes its own tests and still traps the first kid who plays it. Every row below was found by a player, not a test, and each one happened more than once. Write each row's automated form before the beats are written.
+
+## The rules
+| # | Rule | How it went wrong | Automated form |
+|---|---|---|---|
+| 1 | **Never lock looking or turning.** A beat may hide prompts or limit actions, but the camera and the hero's facing stay the player's. The only lock is a shot that is on screen right now, and it gives control back the frame it ends | A tutorial locked turning while the hero faced away from the only exit: the player could not leave the room, and the game went on without them | For every beat except a playing shot: a look input changes the camera yaw, and a turn input changes the hero's facing |
+| 2 | **The start pose faces the way out.** A scene that begins with the hero still (a wake, a spawn, a scene change) faces the hero toward the next goal, with the goal in frame | The hero woke facing a wall, and the first "go outside" prompt meant nothing | State at the first playable frame: the goal's bearing from the camera is within the frame's half-width |
+| 3 | **Every beat names where the hero must be, and waits or leads.** A beat that needs outdoors, a room, or a distance from something says so in data; until it holds, the guide leads there and the beat waits. It never runs in the wrong place | An outdoor 360° view played inside a room because the player had not got out yet | A bot test: hold the hero indoors and call each outdoor beat; it does not start, and the guide's order points to the way out |
+| 4 | **A shot is checked where it plays, not where it was framed.** A shot's start condition includes the same place rule as row 3, and its camera never enters a solid | Shots framed in an editor view clipped into walls in play | Per frame of each shot: the camera is outside every solid and moves less than a set step |
+| 5 | **The end of every task, and of every day, is said out loud.** When the list empties, the guide says what was done and what is next (rest, return, free time), and the list leaves with a visible animation | The tasks ended and the guide went silent; the player wandered with nothing to do | When the last task completes, within a few seconds a guide line plays and the list's state is "leaving" |
+| 6 | **Time-boxed tasks warn before the time runs out.** If tasks belong to a day or a deadline, the guide warns at set times before it, and what happens at the deadline is shown, never silent | Tasks spilled into the next day, with no warning | A sim test: an idle day reaches each warning hour and logs the warning |
+| 7 | **The guide never gives up on an order, and never blocks the player.** A guide character that leads re-plans round obstacles (the player included), and the beat ends when the player is close to the guide, from any side | The guide stood still forever because the player stood in its way; a follow beat never ended because the player stood beside the guide, not in the target circle | A bot stands in the guide's path for 10 s; the guide still arrives. A bot stops 3 m from the guide on the far side; the beat ends |
+| 8 | **The whole flow is played by a bot with real input from the start pose.** It uses the same input actions a player uses (move, look, interact), no teleports, no direct calls to the beat runner, and must reach the end. A second bot turns round and wanders first | The flow worked only when the test called the next beat itself | One test per path: real input only, reaches the last beat in a time limit |
+
+## In the brief
+Name this skill and rows 1 to 8 in the brief of every lane that writes beats, shots or a guide. A lane is done when rows 1, 3 and 8 pass on the commit it hands back, run on that commit, not an earlier one.

@@ -104,6 +104,7 @@ This shortens the solution, never the reading: trace the flow the change touches
 | a sun with shadows and a followed hero; a hero who must stand on the ground | `shadows-and-grounding` | `godot-3d-essentials` |
 | jumping, climbing, getting in or on | `contextual-traversal` | |
 | a follow camera | `third-person-camera` | `camera-systems` |
+| an opening, a tutorial, a guide character, story beats, cinematic shots, a day of tasks | `guided-tutorial` | `godot-animation`, `game-ai` |
 | traffic, crowds, chasers | `living-world` | `game-ai` |
 | a gate | `game-feel-gate` | `performance-optimization`, `godot-export` |
 | a weakest device, quality presets, stutter or low fps | `frame-budget` | `performance-optimization`, `godot-export` |
