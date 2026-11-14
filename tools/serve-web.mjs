@@ -13,13 +13,14 @@ import http from 'node:http';
 import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
-import { staticHandler } from './godot.mjs';
+import { gzipWeb, staticHandler } from './godot.mjs';
 
 const args = process.argv.slice(2);
 const flag = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args.splice(i, 2)[1] : d; };
 const port = Number(flag('--port', 5188)), [project] = args;
 const web = project && path.resolve(project, 'build/web');
 if (!web || !fs.existsSync(path.join(web, 'index.html'))) { console.error('usage: serve-web.mjs <project dir> [--port 5188]   (needs <project>/build/web: run web-check.mjs first)'); process.exit(2); }
+gzipWeb(web);  // about half the bytes over a slow venue network
 
 // the key stays in build/, which no project commits
 const key = path.join(path.dirname(web), 'serve.key'), cert = path.join(path.dirname(web), 'serve.crt');

@@ -7,6 +7,7 @@
 //                  with software OpenGL, so a check never puts a window in front of the user
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import zlib from 'node:zlib';
 import path from 'node:path';
 
 export const GODOT = process.env.GODOT || 'godot';
@@ -83,6 +84,24 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'applic
 export const staticHandler = dir => (q, s) => {
   const file = path.join(dir, path.normalize(decodeURIComponent(new URL(q.url, 'http://x').pathname)).replace(/^[/\\]+/, '') || 'index.html');
   if (!file.startsWith(dir) || !fs.existsSync(file)) { s.writeHead(404).end(); return; }
-  s.writeHead(200, { 'content-type': TYPES[path.extname(file)] ?? 'application/octet-stream' });
+  const type = TYPES[path.extname(file)] ?? 'application/octet-stream';
+  // a gzipped copy beside the file (gzipWeb()) goes to a browser that takes it: the build is about half the bytes
+  if (/\bgzip\b/.test(q.headers['accept-encoding'] ?? '') && fs.existsSync(file + '.gz')) {
+    s.writeHead(200, { 'content-type': type, 'content-encoding': 'gzip', vary: 'accept-encoding' });
+    fs.createReadStream(file + '.gz').pipe(s);
+    return;
+  }
+  s.writeHead(200, { 'content-type': type });
   fs.createReadStream(file).pipe(s);
+};
+
+// Writes a .gz beside each large file of a web build (once; again when the file is newer), for staticHandler.
+export const gzipWeb = dir => {
+  for (const f of fs.readdirSync(dir)) {
+    const file = path.join(dir, f);
+    if (f.endsWith('.gz') || fs.statSync(file).size < 100_000) continue;
+    const gz = file + '.gz';
+    if (fs.existsSync(gz) && fs.statSync(gz).mtimeMs >= fs.statSync(file).mtimeMs) continue;
+    fs.writeFileSync(gz, zlib.gzipSync(fs.readFileSync(file), { level: 6 }));
+  }
 };
